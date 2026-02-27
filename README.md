@@ -22,13 +22,15 @@ Sistema cliente/servidor usando sockets TCP e threads onde o usuário atua como 
 
 ## Estrutura do Repositório
 
+```
 projeto-redes/
 ├── README.md
-├── config.py &emsp;&emsp;# constantes (host, porta, ativos, parâmetros de simulação)
-├── server.py &emsp;&emsp;# lógica do servidor (processamento de ordens + simulação)
-├── client.py &emsp;&emsp;# interface do cliente (input do usuário + exibição do feed)
-└── docs/ &emsp;&emsp;# material de estudo e documentação
-&emsp;&emsp;&emsp;└── pseudocodigo_pregao.md
+├── config.py       # constantes (host, porta, ativos, parâmetros de simulação)
+├── server.py       # lógica do servidor (processamento de ordens + simulação)
+├── client.py       # interface do cliente (input do usuário + exibição do feed)
+└── docs/           # material de estudo e documentação
+    └── pseudocodigo_pregao.md
+```
 
 ---
 
