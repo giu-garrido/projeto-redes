@@ -29,7 +29,7 @@ projeto-redes/
 ├── server.py       # lógica do servidor (processamento de ordens + simulação)
 ├── client.py       # interface do cliente (input do usuário + exibição do feed)
 └── docs/           # material de estudo e documentação
-    └── pseudocodigo_pregao.md
+    └── referencias.md
 ```
 
 ---
