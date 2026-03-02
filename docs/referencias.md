@@ -13,4 +13,5 @@
 - [O que são e para que servem os ticks](https://ajuda.nelogica.com.br/hc/pt-br/articles/4401991544987-O-que-s%C3%A3o-e-para-que-servem-os-ticks)
   
 ### Other sites:
+- [Complete guide to Socket Programming in Python](https://www.datacamp.com/tutorial/a-complete-guide-to-socket-programming-in-python)
 - [Socket Programming with Multi-threading in Python](https://www.geeksforgeeks.org/python/socket-programming-multi-threading-python/)
