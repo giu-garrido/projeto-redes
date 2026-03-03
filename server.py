@@ -3,8 +3,7 @@ from datetime import datetime
 
 mutex = threading.Lock()
 
-with mutex:
-    prices = {asset: price for asset, price in config.INITIAL_ASSETS.items()}
+prices = {asset: price for asset, price in config.INITIAL_ASSETS.items()}
 balance = config.USER_BALANCE
 portfolio = {asset: 0 for asset in config.INITIAL_ASSETS}
 tick = config.TICK_SIZE
