@@ -3,7 +3,8 @@ from datetime import datetime
 
 mutex = threading.Lock()
 
-prices = {asset: price for asset, price in config.INITIAL_ASSETS.items()}
+with mutex:
+    prices = {asset: price for asset, price in config.INITIAL_ASSETS.items()}
 balance = config.USER_BALANCE
 portfolio = {asset: 0 for asset in config.INITIAL_ASSETS}
 tick = config.TICK_SIZE
@@ -16,7 +17,9 @@ min_price = config.MIN_PRICE
 
 def commands(client_socket):
     while True:
-        message = client_socket.accept()
+        #message = client_socket.accept()
+        message = client_socket.recv(1024).decode() # corrigido, o "client_socket" não tem .accept
+
 
         # Continuar
 
@@ -31,13 +34,18 @@ def market_simulation(client_socket):
         for asset, price in prices.items():
             variation = random.uniform(-tick, tick*var_tick)
             prices[asset] = round(prices[asset] + variation, 2)
+           
 
             if prices[asset] < min_price:
                 prices[asset] = min_price
 
+            feed_msg += f"{asset}: R${price:.2f}\n" #adicionei o que faltava nessa função, ela atualizava os preços e conferia com o minimo, mas não enviava nada para o client
+            client_socket.send(feed_msg.encode())
+            time.sleep(config.FEED_INTERVAL)
+
             # Continuar
 
-        time.sleep(random.randint(1,3))
+        time.sleep(config.FEED_INTERVAL) # substitui random por variavel global
 
 ###################
 
@@ -60,14 +68,14 @@ def main():
 
     client_socket.send(msg.encode()) # Pra mandar tudo por só um socket
 
-    thCommands = threading.Thread(target = commands, args=(client_socket,),name="ThCommands") #Alterei os nomes das threads pra ficar mais claro e adicionei "name" pra cada uma delas
-    thMarketPricing = threading.Thread(target = market_simulation, args=(client_socket,),name="ThMarketPricing")
+    th1Commands = threading.Thread(target = commands, args=(client_socket,),name="ThCommands") #Alterei os nomes das threads pra ficar mais claro e adicionei "name" pra cada uma delas
+    th2Pricing = threading.Thread(target = market_simulation, args=(client_socket,),name="ThPricing")
 
     thMarketPricing.daemon = True #daemon faz com que thread encerre junto com o main
-    thCommands.daemon = True
+    #thCommands.daemon = True ------->> Removi Daemon pois commands não precisa dele  //// poderia ser feito com .join(), fazendo com que commands encerre main(), mas teriamos problemas ao expandir para mais clientes
     
     thCommands.start()      #inicia thread
-    thMarketPricing.start()
+    thPricing.start()
 
     '''
     Fiz até aqui, daqui pra baixo (nessa funçao), continuar editando
