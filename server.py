@@ -27,24 +27,29 @@ def commands(client_socket):
 ##  Thread do feed  ##
 ######################
 
-def market_simulation(client_socket):
+def market_simulation(client_socket): #ARRUMAR POIS, TICK DE ENVIO = TICK DE ATUALIZAÇÃO, ESTA ERRADO DEPOIS ARRUMO!
     
     while True:
-        for asset, price in prices.items():
-            variation = random.uniform(-tick*var_tick, tick*var_tick) #arrumei variação de tick ja
-            prices[asset] = round(prices[asset] + variation, 2)
+        
+        
+        feedMsg = "\n" #zera valor de feedmsg para começar atualização de preços
+            with mutex:  #para evitar que outra thread não mude os valores 
+                for asset, price in prices.items():
+                    
+                    variation = random.uniform(-tick*var_tick, tick*var_tick) #variação de tick corrigida
+                    prices[asset] = round(prices[asset] + variation, 2)  #arredonda preço para 2 casas decimais
            
+                    if prices[asset] < min_price: #impede que preço seja menor ou igual a 0
+                        prices[asset] = min_price
 
-            if prices[asset] < min_price:
-                prices[asset] = min_price
-
-            feed_msg += f"{asset}: R${price:.2f}\n" #adicionei o que faltava nessa função, ela atualizava os preços e conferia com o mínimo, mas não enviava nada para o client
-            client_socket.send(feed_msg.encode())
-            time.sleep(config.FEED_INTERVAL)
-
-            # Continuar
-
-        time.sleep(config.FEED_INTERVAL) # substitui random por variavel global
+                    feedMsg += f"{asset}: R${prices[asset]:.2f}\n" #armazena os preços em feedMsg
+        
+        try:
+            client_socket.send(feedMsg.encode()) #manda mensagem pro cliente receber os preços
+        except (BrokenPipeError, ConnectionResetError, OSError):
+            print("Cliente desconectou. Encerrando o feed.")
+            break
+        time.sleep(random.uniform(config.MIN_TICK_TIME, config.MAX_TIME_TICK)) # substitui randint por variavel global
 
 ###################
 
