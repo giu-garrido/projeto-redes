@@ -45,7 +45,7 @@ def main():
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((config.HOST, config.PORT))
-    server_socket.listen(1)
+    server_socket.listen(1) #recebe 1 valor na fila, talvez alterar!?
 
     print(f"[INFO] AGUARDANDO CONEXÃO (PORTA: {config.PORT})")
     client_socket, address = server_socket.accept() # Fica esperando a conexão do cliente p/ aceitar
@@ -60,11 +60,14 @@ def main():
 
     client_socket.send(msg.encode()) # Pra mandar tudo por só um socket
 
-    t1 = threading.Thread(target = commands, args=(client_socket,))
-    t2 = threading.Thread(target = market_simulation, args=(client_socket,))
+    thCommands = threading.Thread(target = commands, args=(client_socket,),name="ThCommands") #Alterei os nomes das threads pra ficar mais claro e adicionei "name" pra cada uma delas
+    thMarketPricing = threading.Thread(target = market_simulation, args=(client_socket,),name="ThMarketPricing")
 
-    t1.start()
-    t2.start()
+    thMarketPricing.daemon = True #daemon faz com que thread encerre junto com o main
+    thCommands.daemon = True
+    
+    thCommands.start()      #inicia thread
+    thMarketPricing.start()
 
     '''
     Fiz até aqui, daqui pra baixo (nessa funçao), continuar editando
