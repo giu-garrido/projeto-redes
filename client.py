@@ -8,8 +8,41 @@ def main():
     msg = client_socket.recv(1024).decode() # Recebe até 1024 bytes de mensagem
     print(f"Server says: {msg}")
 
-    client_socket.send("Testando (client side)".encode())
 
+    th1Commands = threading.Thread(target = commands, args=(client_socket,),name="Th1Commands") 
+    th2Pricing = threading.Thread(target = market_simulation, args=(client_socket,),name="Th2Pricing")
+
+
+    
+
+    client_socket.send("Testando (client side)".encode())
+    
     client_socket.close()
 
 main()
+
+
+
+def thServerListener(server_socket):
+
+    while True:
+        try:
+            
+
+            
+                                        #ouvidor do server
+
+        except(ConnectionResetError,    # except captura erros e exibe
+               OSError,
+               socket.timeout,          # timeout no socket
+               socket.gaierror,         # erro ao resolver DNS/endereço
+               socket.herror            # erro de de endereço do host
+              ):
+            print(f'/nErro ao se conectar. Conexão Encerrada.')
+            break
+            
+
+
+
+    
+    
