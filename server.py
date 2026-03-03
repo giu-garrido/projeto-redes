@@ -32,14 +32,14 @@ def market_simulation(client_socket):
     
     while True:
         for asset, price in prices.items():
-            variation = random.uniform(-tick, tick*var_tick)
+            variation = random.uniform(-tick*var_tick, tick*var_tick) #arrumei variação de tick ja
             prices[asset] = round(prices[asset] + variation, 2)
            
 
             if prices[asset] < min_price:
                 prices[asset] = min_price
 
-            feed_msg += f"{asset}: R${price:.2f}\n" #adicionei o que faltava nessa função, ela atualizava os preços e conferia com o minimo, mas não enviava nada para o client
+            feed_msg += f"{asset}: R${price:.2f}\n" #adicionei o que faltava nessa função, ela atualizava os preços e conferia com o mínimo, mas não enviava nada para o client
             client_socket.send(feed_msg.encode())
             time.sleep(config.FEED_INTERVAL)
 
@@ -68,14 +68,14 @@ def main():
 
     client_socket.send(msg.encode()) # Pra mandar tudo por só um socket
 
-    th1Commands = threading.Thread(target = commands, args=(client_socket,),name="ThCommands") #Alterei os nomes das threads pra ficar mais claro e adicionei "name" pra cada uma delas
-    th2Pricing = threading.Thread(target = market_simulation, args=(client_socket,),name="ThPricing")
+    th1Commands = threading.Thread(target = commands, args=(client_socket,),name="Th1Commands") #Alterei os nomes das threads pra ficar mais claro e adicionei "name" pra cada uma delas
+    th2Pricing = threading.Thread(target = market_simulation, args=(client_socket,),name="Th2Pricing")
 
-    thMarketPricing.daemon = True #daemon faz com que thread encerre junto com o main
-    #thCommands.daemon = True ------->> Removi Daemon pois commands não precisa dele  //// poderia ser feito com .join(), fazendo com que commands encerre main(), mas teriamos problemas ao expandir para mais clientes
+    th2Pricing.daemon = True #daemon faz com que thread encerre junto com o main
+    #th1Commands.daemon = True ------->> Removi Daemon pois commands não precisa dele  //// poderia ser feito com .join(), fazendo com que commands encerre main(), mas teriamos problemas ao expandir para mais clientes
     
-    thCommands.start()      #inicia thread
-    thPricing.start()
+    th1Commands.start()      #inicia thread
+    th2Pricing.start()
 
     '''
     Fiz até aqui, daqui pra baixo (nessa funçao), continuar editando
