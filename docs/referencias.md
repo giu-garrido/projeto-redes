@@ -13,7 +13,7 @@
 - [O que são e para que servem os ticks](https://ajuda.nelogica.com.br/hc/pt-br/articles/4401991544987-O-que-s%C3%A3o-e-para-que-servem-os-ticks)
   
 ### Other sites:
-- [Python Time library](https://docs.python.org/3/library/time.html)
+- [Python's Time library](https://docs.python.org/3/library/time.html)
 - [Python's Built-in Exceptions](https://realpython.com/ref/builtin-exceptions/)
 - [Complete guide to Socket Programming in Python](https://www.datacamp.com/tutorial/a-complete-guide-to-socket-programming-in-python)
 - [Socket Programming with Multi-threading in Python](https://www.geeksforgeeks.org/python/socket-programming-multi-threading-python/)
