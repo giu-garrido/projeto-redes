@@ -9,12 +9,10 @@ def main():
     print(f"Server says: {msg}")
 
 
-    th1Listener = threading.Thread(target = commands, args=(client_socket,),name="Th1Listener") 
-    th2ClientCommand = threading.Thread(target = market_simulation, args=(client_socket,),name="Th2ClientCommands")
-
+    ClTh1Negotiation = threading.Thread(target = trocar, args=(trocar,),name="ClTh1Negotiation")
+    ClTh2Feed = threading.Thread(target = trocar , args=(trocar,),name="ClTh2Feed") 
 
     
-
     client_socket.send("Testando (client side)".encode())
     
     client_socket.close()
