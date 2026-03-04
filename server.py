@@ -49,8 +49,10 @@ def market_simulation(client_socket): #ARRUMAR POIS, TICK DE ENVIO = TICK DE ATU
         except (BrokenPipeError, ConnectionResetError, OSError):
             print("Cliente desconectou. Encerrando o feed.")
             break
-        time.sleep(random.uniform(config.MIN_TICK_TIME, config.MAX_TIME_TICK)) # substitui randint por variavel global
-
+        #usar time.time() ou calcular diferença do tick_time por feed_time, qual é melhor? 
+        tempo = random.uniform(config.MIN_TICK_TIME, config.MAX_TIME_TICK)
+        time.sleep(tempo) # substitui randint por variavel global
+        
 ###################
 
 def main():
