@@ -9,6 +9,7 @@ portfolio = {asset: 0 for asset in config.INITIAL_ASSETS}
 tick = config.TICK_SIZE
 var_tick = config.MAX_TICKS_PER_VARIATION
 min_price = config.MIN_PRICE
+feed_interval = config.FEED_INTERVAL
 
 #######################
 # Thread dos Comandos #
@@ -27,30 +28,34 @@ def commands(client_socket):
 ##  Thread do feed  ##
 ######################
 
-def market_simulation(client_socket): #ARRUMAR POIS, TICK DE ENVIO = TICK DE ATUALIZAÇÃO, ESTA ERRADO DEPOIS ARRUMO!
-    
+def market_simulation(client_socket): #arrumei eu acho [TESTAR!] ----- no primeiro ciclo, o valor é atualizado e enviado ao mesmo tempo   
+    cont = 0
+    tempo = 0
     while True:
-        
-        
+        time.sleep(feed_interval - tempo) #no pior dos casos, seria (5 - 1) ou (5-3)
+        cont += 1        
         feedMsg = "\n" #zera valor de feedmsg para começar atualização de preços
-            with mutex:  #para evitar que outra thread não mude os valores 
-                for asset, price in prices.items():
+        with mutex:  #para evitar que outra thread não mude os valores 
+            for asset, price in prices.items():
                     
-                    variation = random.uniform(-tick*var_tick, tick*var_tick) #variação de tick corrigida
-                    prices[asset] = round(prices[asset] + variation, 2)  #arredonda preço para 2 casas decimais
+                variation = random.uniform(-tick*var_tick, tick*var_tick) #variação de tick corrigida
+                prices[asset] = round(prices[asset] + variation, 2)  #arredonda preço para 2 casas decimais
            
-                    if prices[asset] < min_price: #impede que preço seja menor ou igual a 0
-                        prices[asset] = min_price
+                if prices[asset] < min_price: #impede que preço seja menor ou igual a 0
+                    prices[asset] = min_price
 
                     feedMsg += f"{asset}: R${prices[asset]:.2f}\n" #armazena os preços em feedMsg
-        
+        if(cont != 1):
+            tempo = random.uniform(config.MIN_TICK_TIME, config.MAX_TIME_TICK)
+            time.sleep(tempo)
+        else:
+            tempo = 0
         try:
             client_socket.send(feedMsg.encode()) #manda mensagem pro cliente receber os preços
         except (BrokenPipeError, ConnectionResetError, OSError):
             print("Cliente desconectou. Encerrando o feed.")
             break
-        #usar time.time() ou calcular diferença do tick_time por feed_time, qual é melhor? 
-        tempo = random.uniform(config.MIN_TICK_TIME, config.MAX_TIME_TICK)
+
         time.sleep(tempo) # substitui randint por variavel global
         
 ###################
