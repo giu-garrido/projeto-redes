@@ -9,8 +9,8 @@ def main():
     print(f"Server says: {msg}")
 
 
-    th1Commands = threading.Thread(target = commands, args=(client_socket,),name="Th1Commands") 
-    th2Pricing = threading.Thread(target = market_simulation, args=(client_socket,),name="Th2Pricing")
+    th1Listener = threading.Thread(target = commands, args=(client_socket,),name="Th1Listener") 
+    th2ClientCommand = threading.Thread(target = market_simulation, args=(client_socket,),name="Th2ClientCommands")
 
 
     
