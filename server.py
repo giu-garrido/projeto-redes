@@ -29,7 +29,7 @@ def commands(client_socket):
 ######################
 
 def market_simulation(client_socket): #arrumei eu acho [TESTAR!] ----- no primeiro ciclo, o valor é atualizado e enviado ao mesmo tempo   
-    cont = 0
+    cont = 0                          #de acordo como documento do Forster, acho que tudo bem printar logo de cara, só precisa ver a questão se o primeiro print ja tem valor atualizado ou n
     tempo = 0
     while True:
         time.sleep(feed_interval - tempo) #no pior dos casos, seria (5 - 1) ou (5-3)
@@ -79,14 +79,14 @@ def main():
 
     client_socket.send(msg.encode()) # Pra mandar tudo por só um socket
 
-    th1Commands = threading.Thread(target = commands, args=(client_socket,),name="Th1Commands") #Alterei os nomes das threads pra ficar mais claro e adicionei "name" pra cada uma delas
-    th2Pricing = threading.Thread(target = market_simulation, args=(client_socket,),name="Th2Pricing")
+    SvTh1Commands = threading.Thread(target = commands, args=(client_socket,),name="SvTh1Commands") #Alterei os nomes das threads pra ficar mais claro e adicionei "name" pra cada uma delas
+    SvTh2Pricing = threading.Thread(target = market_simulation, args=(client_socket,),name="SvTh2Pricing")
 
-    th2Pricing.daemon = True #daemon faz com que thread encerre junto com o main
+    SvTh2Pricing.daemon = True #daemon faz com que thread encerre junto com o main
     #th1Commands.daemon = True ------->> Removi Daemon pois commands não precisa dele  //// poderia ser feito com .join(), fazendo com que commands encerre main(), mas teriamos problemas ao expandir para mais clientes
     
-    th1Commands.start()      #inicia thread
-    th2Pricing.start()
+    SvTh1Commands.start()      #inicia thread
+    SvTh2Pricing.start()
 
     '''
     Fiz até aqui, daqui pra baixo (nessa funçao), continuar editando
