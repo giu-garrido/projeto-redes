@@ -16,9 +16,9 @@ INITIAL_ASSETS = { # Peguei os valores dos mais negociados (dia 27/02/26)
 TICK_SIZE = 0.01 # Do mercado à vista da B3
 MAX_TICKS_PER_VARIATION = 10
 MIN_TICK_TIME = 1 # Tempo mínimo para alteração de preço
-MAX_TIME_TICK = 3 # Tempo máximo para alteração de preço
+MAX_TICK_TIME = 3 # Tempo máximo para alteração de preço
 FEED_INTERVAL = 5 # Feed constante de preços que o servidor vai mandar pro cliente
 MIN_PRICE = 0.01 # Menor valor possível
-
+ACTIVE = True # Flag
 
 

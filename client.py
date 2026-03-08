@@ -1,5 +1,7 @@
 import socket, threading, config
 
+active = config.ACTIVE
+
 #Thread 1 - le comandos do usuario e envia ao servidor
 def negotiator(server_socket):
 
@@ -10,12 +12,12 @@ def negotiator(server_socket):
             if not cmd:
                 continue
 
-            client_socket.send(cmd.encode())  # envia pro servidor
+            server_socket.send(cmd.encode()) 
 
-            if cmd.strip().lower() == ':exit': #user pode digitar exit para finalizar o programa
+            if cmd.strip().lower() == ':exit':
                 print("Encerrando conexão...")
-                break                   
-            #/commit victor
+                break # Para de ler o teclado     
+
                                         #ouvidor do server
         except(ConnectionResetError,    # except captura erros e exibe
                OSError,
@@ -23,7 +25,7 @@ def negotiator(server_socket):
                socket.gaierror,         # erro ao resolver DNS/endereço
                socket.herror            # erro de de endereço do host
               ):
-            print(f'/nErro ao se conectar. Conexão Encerrada.')
+            print(f'/n[ERROR] Erro ao se conectar. Conexão Encerrada.')
             break
 
 #thread 2 - recebe os precos do server e printa
@@ -31,7 +33,7 @@ def feedupd(server_socket):
     while True:
         try:
             #commit victor
-            msg = client_socket.recv(1024).decode()  # recebe do servidor
+            msg = server_socket.recv(1024).decode()  # recebe do servidor
             if not msg:
                 print('\nServidor encerrou a conexão.')
                 break
@@ -44,29 +46,23 @@ def feedupd(server_socket):
                 socket.gaierror,         # erro ao resolver DNS/endereço
                 socket.herror            # erro de de endereço do host
                 ):
-            print(f'/nErro ao se conectar. Conexão Encerrada.')
+            print(f'/n[ERROR] Erro ao se conectar. Conexão Encerrada.')
             break
 
 
-    
-    
-
 def main():
 
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #inicia o socket do client    
-    client_socket.connect((config.HOST, config.PORT)) # Conecta com o server
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #inicia o socket do client    
+    server_socket.connect((config.HOST, config.PORT)) # Conecta com o server
 
-    msg = client_socket.recv(1024).decode() # Recebe até 1024 bytes de mensagem
+    msg = server_socket.recv(1024).decode() # Recebe até 1024 bytes de mensagem
     print(f"Server says: {msg}")
 
-    # commit victor 
-    #server_socket, address = client_socket.accept()
-    # --- pelo que entendi, o .accept só existe no server, o client só se conecta pelo .connect e ja usa o socket tbm
-    #/commit victor
 
     '''
     Parte das Threads
     '''
+
     ClTh1Negotiation = threading.Thread(target = negotiator, args=(server_socket,),name="ClTh1Negotiation")
     ClTh2Feed = threading.Thread(target = feedupd , args=(server_socket,),name="ClTh2Feed") 
 
@@ -83,12 +79,8 @@ def main():
     #victor 
     ClTh1Negotiation.join()  # main() trava aqui até Thread 1 terminar
     #/victor
-
-    #client_socket.send("Testando (client side)".encode()) ----- teste antigo
     
-    client_socket.close()
-
-    #server_socket.close() #victor: como removi o .accept anteriormente essa variavel nunca existiu (e nem precisa)
+    server_socket.close()
 
 main()
 
