@@ -29,21 +29,21 @@ def negotiator(server_socket):
 #thread 2 - recebe os precos do server e printa
 def feedupd(server_socket):
     while True:
-    try:
-        #commit victor
-        msg = client_socket.recv(1024).decode()  # recebe do servidor
+        try:
+            #commit victor
+            msg = client_socket.recv(1024).decode()  # recebe do servidor
             if not msg:
                 print('\nServidor encerrou a conexão.')
                 break
             print(msg)  # exibe os precos
-        #/commit victor
-    
+            #/commit victor
+        
         except(ConnectionResetError,    # except captura erros e exibe
-               OSError,
-               socket.timeout,          # timeout no socket
-               socket.gaierror,         # erro ao resolver DNS/endereço
-               socket.herror            # erro de de endereço do host
-              ):
+                OSError,
+                socket.timeout,          # timeout no socket
+                socket.gaierror,         # erro ao resolver DNS/endereço
+                socket.herror            # erro de de endereço do host
+                ):
             print(f'/nErro ao se conectar. Conexão Encerrada.')
             break
 
@@ -64,9 +64,9 @@ def main():
     # --- pelo que entendi, o .accept só existe no server, o client só se conecta pelo .connect e ja usa o socket tbm
     #/commit victor
 
-'''
-Parte das Threads
-'''
+    '''
+    Parte das Threads
+    '''
     ClTh1Negotiation = threading.Thread(target = negotiator, args=(server_socket,),name="ClTh1Negotiation")
     ClTh2Feed = threading.Thread(target = feedupd , args=(server_socket,),name="ClTh2Feed") 
 
@@ -89,9 +89,6 @@ Parte das Threads
     client_socket.close()
 
     #server_socket.close() #victor: como removi o .accept anteriormente essa variavel nunca existiu (e nem precisa)
-'''
-Parte das Threads
-'''
 
 main()
 
