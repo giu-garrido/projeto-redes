@@ -16,12 +16,9 @@ def negotiator(server_socket):
             server_socket.send(cmd.encode()) 
 
             if cmd.strip().lower() == ':exit':
-                print("Encerrando conexão...")
+                print("[OK] Encerrando conexão...")
                 active = False
-                break # Para de ler o teclado
-
-            else:
-                print(server_socket.recv(1024).decode())     
+                break # Para de ler o teclado 
 
                                         #ouvidor do server
         except(ConnectionResetError,    # except captura erros e exibe
@@ -30,7 +27,7 @@ def negotiator(server_socket):
                socket.gaierror,         # erro ao resolver DNS/endereço
                socket.herror            # erro de de endereço do host
               ):
-            print(f'/n[ERROR] Erro ao se conectar. Conexão Encerrada.')
+            print(f'\n[ERROR] Erro ao se conectar. Conexão Encerrada.')
             active = False
             break
 
@@ -40,14 +37,19 @@ def feedupd(server_socket):
 
     while active:
         try:
-            #commit victor
+            
             msg = server_socket.recv(1024).decode()  # recebe do servidor
+
             if not msg:
-                print('\nServidor encerrou a conexão.')
+                print('\n[INFO] Servidor encerrou a conexão.')
                 active = False
                 break
-            print(msg)  # exibe os precos
-            #/commit victor
+
+            if "[ERROR]" in msg:
+                print(f"\033[31m{msg}\033[0m") # Texto sai em vermelho se for erro
+            else:
+                print(msg)
+          
         
         except(ConnectionResetError,    # except captura erros e exibe
                 OSError,
@@ -55,7 +57,7 @@ def feedupd(server_socket):
                 socket.gaierror,         # erro ao resolver DNS/endereço
                 socket.herror            # erro de de endereço do host
                 ):
-            print(f'/n[ERROR] Erro ao se conectar. Conexão Encerrada.')
+            print(f'\n[ERROR] Erro ao se conectar. Conexão Encerrada.')
             active = False
             break
 
@@ -65,30 +67,16 @@ def main():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #inicia o socket do client    
     server_socket.connect((config.HOST, config.PORT)) # Conecta com o server
 
-    msg = server_socket.recv(1024).decode() # Recebe até 1024 bytes de mensagem
-    print(f"Server says: {msg}")
-
-
-    '''
-    Parte das Threads
-    '''
+    msg = server_socket.recv(1024).decode()
+    print(f"{msg}\n")
 
     ClTh1Negotiation = threading.Thread(target = negotiator, args=(server_socket,),name="ClTh1Negotiation")
     ClTh2Feed = threading.Thread(target = feedupd , args=(server_socket,),name="ClTh2Feed") 
 
-    #commit victor
-    #ClTh1Negotiation.daemon = True 
-    #----- n pode usar daemon aqui, pq como ela le a digitaçao do user, ela pode acabar "morrendo" sem o usuario perceber no meio da digitaçao
-    #/commit victor
-
-    #ClTh2Feed.daemon = True ----- comentei pq n sei se é válido usar aqui #victor: realmente, nao é valido!
-
     ClTh1Negotiation.start()
     ClTh2Feed.start()
 
-    #victor 
     ClTh1Negotiation.join()  # main() trava aqui até Thread 1 terminar
-    #/victor
     
     server_socket.close()
 

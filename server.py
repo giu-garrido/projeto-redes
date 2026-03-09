@@ -72,7 +72,7 @@ def commands(client_socket):
                         if balance >= total_cost:
                             balance -= total_cost
                             portfolio[asset] += qtd
-                            response = f"\n[OK] Você comprou: {qtd}x {asset} a R${current_price:.2f} | Total: R${total_cost:.2f}"
+                            response = f"\n[OK] Você executou: COMPRA {qtd}x {asset} a R${current_price:.2f} | Total: R${total_cost:.2f}"
                         
                         else:
                             response = f"\n[ERROR] Saldo insuficiente. Saldo atual: R${balance:.2f}"
@@ -104,7 +104,7 @@ def commands(client_socket):
                         if asset in portfolio and portfolio[asset] >= qtd:
                             balance += total_cost
                             portfolio[asset] -= qtd
-                            response = f"\n[OK] Você vendeu: {qtd}x {asset} a R${current_price:.2f} | Total: R${total_cost:.2f}"
+                            response = f"\n[OK] Você executou: VENDA {qtd}x {asset} a R${current_price:.2f} | Total: R${total_cost:.2f}"
                         
                         else:
                             response = f"\n[ERROR] Você não possui {qtd}x {asset}. Disponível: {portfolio.get(asset, 0)} unidades."
@@ -126,42 +126,36 @@ def commands(client_socket):
 ######################
 
 def market_simulation(client_socket):  
-    global active, feed_interval, prices, min_price, var_tick, tick, min_tick_time, max_tick_time
+    global active, prices
 
-    cont = 0                          
-    tempo = 0
+    beginning_feed_time = time.time()
 
     while active:
-        time.sleep(feed_interval - tempo) #no pior dos casos, seria (5 - 1) ou (5-3)
-        cont += 1        
-        feedMsg = "\n" #zera valor de feedmsg para começar atualização de preços
+        with mutex:
 
-        with mutex:  #para evitar que outra thread não mude os valores 
             for asset, price in prices.items():
                     
-                variation = random.uniform(-tick*var_tick, tick*var_tick) 
-                prices[asset] = round(prices[asset] + variation, 2)  
-           
-                if prices[asset] < min_price: #impede que preço seja menor ou igual a 0
+                variation = random.uniform(-tick * var_tick, tick * var_tick)
+                prices[asset] = round(prices[asset] + variation, 2)
+
+                if prices[asset] < min_price:
                     prices[asset] = min_price
 
-                feedMsg += f"{asset}: R${prices[asset]:.2f}\n" #armazena os preços em feedMsg
+        if (time.time() - beginning_feed_time) >= feed_interval:
+            with mutex:
+                feed_msg = "\n[FEED] Cotações atualizadas:\n"
+                for asset, price in prices.items():
+                    feed_msg += f"\t{asset}: R${price:.2f}\n"
 
-        if(cont != 1):
-            tempo = random.uniform(min_tick_time, max_tick_time)
-            time.sleep(tempo)
+            try:
+                client_socket.send(feed_msg.encode())
+            except (BrokenPipeError, ConnectionResetError, OSError):
+                print("[INFO] Cliente desconectou. Encerrando o feed.")
+                break
 
-        else:
-            tempo = 0
+            last_feed_time = time.time()
 
-        try:
-            client_socket.send(feedMsg.encode()) #manda mensagem pro cliente receber os preços
-
-        except (BrokenPipeError, ConnectionResetError, OSError):
-            print("[INFO] Cliente desconectou. Encerrando o feed.")
-            break
-
-        time.sleep(tempo) # substitui randint por variavel global
+        time.sleep(random.uniform(min_tick_time, max_tick_time))
         
 ###################
 
@@ -176,7 +170,9 @@ def main():
     print(f"[INFO] CLIENTE CONECTADO: {address}")
 
     timestamp_message = datetime.now().strftime("%H:%M:%S")
-    msg = f"{timestamp_message}: CONNECTED!"
+    msg = f"{timestamp_message}: CONECTADO!"
+
+    msg = "-------------------------------------------\nComandos: :buy <ATIVO> <QTD> | :sell <ATIVO> <QTD> | :carteira | :exit\n-------------------------------------------\n"
 
     for asset, price in prices.items():
         msg += f"\nAtivo disponível: {asset} (R${price})\n"
@@ -184,21 +180,15 @@ def main():
 
     client_socket.send(msg.encode()) # Pra mandar tudo por só um socket
 
-    SvTh1Commands = threading.Thread(target = commands, args=(client_socket,),name="SvTh1Commands") #Alterei os nomes das threads pra ficar mais claro e adicionei "name" pra cada uma delas
+    SvTh1Commands = threading.Thread(target = commands, args=(client_socket,),name="SvTh1Commands")
     SvTh2Pricing = threading.Thread(target = market_simulation, args=(client_socket,),name="SvTh2Pricing")
 
     SvTh2Pricing.daemon = True #daemon faz com que thread encerre junto com o main
-    #th1Commands.daemon = True ------->> Removi Daemon pois commands não precisa dele  //// poderia ser feito com .join(), fazendo com que commands encerre main(), mas teriamos problemas ao expandir para mais clientes
     
-    SvTh1Commands.start()      #inicia thread
+    SvTh1Commands.start()
     SvTh2Pricing.start()
 
-    '''
-    Fiz até aqui, daqui pra baixo (nessa funçao), continuar editando
-    '''
-
-    msg = client_socket.recv(1024).decode() # Recebe até 1024 bytes de mensagem
-    print(f"[INFO] RECEBIDO: {msg}")
+    SvTh1Commands.join() # main vai travar até a thread de comandos fechar
 
     client_socket.close()
     server_socket.close()

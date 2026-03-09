@@ -15,6 +15,9 @@
 
 ### [09/03/26]
 
-[08:34] Giulia M. Garrido
+[17:14] Giulia M. Garrido
 
 - Corrigi erro de identação no server, que fazia que as atualizações de preço não aparecessem para o client
+- Corrigi erro meu, que fazia com que as duas funções do client chamarem *recv()* no mesmo socket. Aí o feedup recebia a mensagem de confirmação de compra (exemplo) e o negotiator ficasse esperando. Se o servidor mandasse a atualização do feed, quem recebia era o negotiator. (muita confusão com uma só linha de código)
+-  Corrigi questão do tempo, que agora utiliza time.time pra pegar o tempo real atual pra calcular o tempo atual - de quando começou o processo (ou terminou o anterior)
+-  Adicionei o thread join() que tava faltando em um dos arquivos ( não lembro mais qual era B) )
