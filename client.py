@@ -4,8 +4,9 @@ active = config.ACTIVE
 
 #Thread 1 - le comandos do usuario e envia ao servidor
 def negotiator(server_socket):
+    global active
 
-    while True:
+    while active:
         try:
             #Commit Victor
             cmd = input()  # aguarda o usuário digitar algo
@@ -16,7 +17,11 @@ def negotiator(server_socket):
 
             if cmd.strip().lower() == ':exit':
                 print("Encerrando conexão...")
-                break # Para de ler o teclado     
+                active = False
+                break # Para de ler o teclado
+
+            else:
+                print(server_socket.recv(1024).decode())     
 
                                         #ouvidor do server
         except(ConnectionResetError,    # except captura erros e exibe
@@ -26,16 +31,20 @@ def negotiator(server_socket):
                socket.herror            # erro de de endereço do host
               ):
             print(f'/n[ERROR] Erro ao se conectar. Conexão Encerrada.')
+            active = False
             break
 
 #thread 2 - recebe os precos do server e printa
 def feedupd(server_socket):
-    while True:
+    global active
+
+    while active:
         try:
             #commit victor
             msg = server_socket.recv(1024).decode()  # recebe do servidor
             if not msg:
                 print('\nServidor encerrou a conexão.')
+                active = False
                 break
             print(msg)  # exibe os precos
             #/commit victor
@@ -47,6 +56,7 @@ def feedupd(server_socket):
                 socket.herror            # erro de de endereço do host
                 ):
             print(f'/n[ERROR] Erro ao se conectar. Conexão Encerrada.')
+            active = False
             break
 
 

@@ -21,7 +21,7 @@ max_tick_time = config.MAX_TICK_TIME
 def commands(client_socket):
     global balance, active
 
-    while True:
+    while active:
 
         message = client_socket.recv(1024).decode()
 
@@ -131,7 +131,7 @@ def market_simulation(client_socket):
     cont = 0                          
     tempo = 0
 
-    while True:
+    while active:
         time.sleep(feed_interval - tempo) #no pior dos casos, seria (5 - 1) ou (5-3)
         cont += 1        
         feedMsg = "\n" #zera valor de feedmsg para começar atualização de preços
@@ -145,7 +145,7 @@ def market_simulation(client_socket):
                 if prices[asset] < min_price: #impede que preço seja menor ou igual a 0
                     prices[asset] = min_price
 
-                    feedMsg += f"{asset}: R${prices[asset]:.2f}\n" #armazena os preços em feedMsg
+                feedMsg += f"{asset}: R${prices[asset]:.2f}\n" #armazena os preços em feedMsg
 
         if(cont != 1):
             tempo = random.uniform(min_tick_time, max_tick_time)

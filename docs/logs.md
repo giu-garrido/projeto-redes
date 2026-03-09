@@ -13,12 +13,8 @@
 - Terminei a função dos comandos no lado do servidor.
 - Corrigi para que a função do feed utilizasse variáveis globais
 
-[hh:mm] Nome do integrante
+### [09/03/26]
 
-Descrição das atividades, explicação ou justificação da forma ou método utilizado.
+[08:34] Giulia M. Garrido
 
-### [dd/mm/aa]
-
-[hh:mm] Nome do integrante
-
-Descrição das atividades, explicação ou justificação da forma ou método utilizado.
+- Corrigi erro de identação no server, que fazia que as atualizações de preço não aparecessem para o client
