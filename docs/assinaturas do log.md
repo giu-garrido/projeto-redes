@@ -8,5 +8,6 @@ Aquele que desrespeitar as regras ditadas acima estará condenado a pagar uma be
 
 ### Assinaturas:
 - *Giulia M. Garrido*
+- *Vitor R. A. Furuta* 
 
 
