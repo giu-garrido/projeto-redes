@@ -1,4 +1,4 @@
-import socket, threading, time, random, config
+import socket, threading, time, random, config, sys
 from datetime import datetime
 
 mutex = threading.Lock()
@@ -160,6 +160,19 @@ def market_simulation(client_socket):
 ###################
 
 def main():
+
+    if(len(sys.argv) != 2: #verifica se houve o argumento de max_clients
+        print("[ERROR] Uso correto: python server.py <max_clients>")
+        sys.exit(1) #encerra com codigo de erro
+    try:
+        max_clients = int(sys.argv[1]) #o argumento em sys é string por padrão
+        if(max_clients < 1):
+            raise ValueError
+    except ValueError:
+        print("[ERROR] <max_clientes> deve ser um número inteiro positivo.")
+        sys.exit(1)
+        print(f"[INFO] Servidor iniciado. Limite: {max_clients} cliente(s).")
+    
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((config.HOST, config.PORT))
