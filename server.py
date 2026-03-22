@@ -153,7 +153,7 @@ def market_simulation(client_socket):
                 print("[INFO] Cliente desconectou. Encerrando o feed.")
                 break
 
-            last_feed_time = time.time()
+            beginning_feed_time = time.time()
 
         time.sleep(random.uniform(min_tick_time, max_tick_time))
         
@@ -172,7 +172,7 @@ def main():
     timestamp_message = datetime.now().strftime("%H:%M:%S")
     msg = f"{timestamp_message}: CONECTADO!"
 
-    msg = "-------------------------------------------\nComandos: :buy <ATIVO> <QTD> | :sell <ATIVO> <QTD> | :carteira | :exit\n-------------------------------------------\n"
+    msg += "-------------------------------------------\nComandos: :buy <ATIVO> <QTD> | :sell <ATIVO> <QTD> | :carteira | :exit\n-------------------------------------------\n"
 
     for asset, price in prices.items():
         msg += f"\nAtivo disponível: {asset} (R${price})\n"
