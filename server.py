@@ -5,12 +5,12 @@ mutex = threading.Lock()
 mutex_clients = threading.Lock()
 
 prices = {asset: price for asset, price in config.INITIAL_ASSETS.items()}
-balance = config.USER_BALANCE
-portfolio = {asset: 0 for asset in config.INITIAL_ASSETS}
+users = {}
+active_usernames = set()
 
 max_clients = 0
 clients_connected = 0
-active_usernames = set()
+
 
 tick = config.TICK_SIZE
 var_tick = config.MAX_TICKS_PER_VARIATION
@@ -24,8 +24,8 @@ max_tick_time = config.MAX_TICK_TIME
 # Thread dos Comandos #
 #######################
 
-def commands(client_socket):
-    global balance, active
+def commands(client_socket, username):
+    global active
 
     while active:
 
@@ -38,16 +38,15 @@ def commands(client_socket):
 
         if message.lower() == ":exit":
             client_socket.send("[INFO] Desconectando...".encode())
-            active = False
             break # Para de processar comandos
 
 
         elif message.lower() == ":carteira":
             with mutex:
                 text = "\n---------CARTEIRA---------\n"
-                text += f"Saldo: R${balance:.2f}\n"
+                text += f"Saldo: R${users[username]['balance']:.2f}\n"
 
-                for asset, qtd in portfolio.items():
+                for asset, qtd in users[username]['portfolio'].items():
                     if qtd > 0:
                         total_value = qtd * prices[asset]
 
@@ -75,13 +74,13 @@ def commands(client_socket):
                         current_price = prices[asset]
                         total_cost = current_price * qtd
 
-                        if balance >= total_cost:
-                            balance -= total_cost
-                            portfolio[asset] += qtd
+                        if users[username]['balance'] >= total_cost:
+                            users[username]['balance'] -= total_cost
+                            users[username]['portfolio'][asset] += qtd
                             response = f"\n[OK] Você executou: COMPRA {qtd}x {asset} a R${current_price:.2f} | Total: R${total_cost:.2f}"
                         
                         else:
-                            response = f"\n[ERROR] Saldo insuficiente. Saldo atual: R${balance:.2f}"
+                            response = f"\n[ERROR] Saldo insuficiente. Saldo atual: R${users[username]['balance']:.2f}"
                     else:
                         response = f"\n[ERROR] Ativo '{asset}' não encontrado."
 
@@ -107,13 +106,13 @@ def commands(client_socket):
                         current_price = prices[asset]
                         total_cost = current_price * qtd
 
-                        if asset in portfolio and portfolio[asset] >= qtd:
-                            balance += total_cost
-                            portfolio[asset] -= qtd
+                        if asset in users[username]['portfolio'] and users[username]['portfolio'][asset] >= qtd:
+                            users[username]['balance'] += total_cost
+                            users[username]['portfolio'][asset] -= qtd
                             response = f"\n[OK] Você executou: VENDA {qtd}x {asset} a R${current_price:.2f} | Total: R${total_cost:.2f}"
                         
                         else:
-                            response = f"\n[ERROR] Você não possui {qtd}x {asset}. Disponível: {portfolio.get(asset, 0)} unidades."
+                            response = f"\n[ERROR] Você não possui {qtd}x {asset}. Disponível: {users[username]['portfolio'].get(asset, 0)} unidades."
                     else:
                         response = f"\n[ERROR] Ativo '{asset}' não encontrado."
 
@@ -131,14 +130,13 @@ def commands(client_socket):
 ##  Thread do feed  ##
 ######################
 
-def market_simulation(client_socket):  
+def market_simulation(client_socket, username):  
     global active, prices
 
     beginning_feed_time = time.time()
 
     while active:
         with mutex:
-
             for asset, price in prices.items():
                     
                 variation = random.uniform(-tick * var_tick, tick * var_tick)
@@ -175,20 +173,27 @@ def client_waiter(client_socket, address):
     client_socket.send(f"Digite seu nome de usuário: ".encode()) #pede nome de user
     username = client_socket.recv(1024).decode().strip() 
     
-    if not username:
+    if not username: #confirma se há nome
         client_socket.send("[ERROR] Nome inválido. Encerrando conexão.".encode())
         with mutex_clients:
             clients_connected -= 1
         client_socket.close()
         return
 
-    with mutex_clients:
+    with mutex_clients: #confirma se nome ja esta em uso
         if username in active_usernames:
             client_socket.send("[ERROR] Nome de usuário já está em uso. Encerrando conexão.".encode())
             clients_connected -= 1
             client_socket.close()
             return
         active_usernames.add(username)
+
+    with mutex:
+        if username not in users:
+            users[username] = {
+                "balance": config.USER_BALANCE,
+                "portfolio": {asset: 0 for asset in config.INITIAL_ASSETS}       
+            }
 
 
     print(f"[INFO] Usuário identificado: {username} | Endereço: {address}")
@@ -198,7 +203,7 @@ def client_waiter(client_socket, address):
     msg += "-------------------------------------------\nComandos: :buy <ATIVO> <QTD> | :sell <ATIVO> <QTD> | :carteira | :exit\n-------------------------------------------\n"
     for asset, price in prices.items():
         msg += f"\nAtivo disponível: {asset} (R${price:.2f})\n"
-    msg += f"\nSeu saldo: R${balance:.2f}"
+    msg += f"\nSeu saldo: R$ {users[username]['balance']:.2f}"
     client_socket.send(msg.encode())
 
 
