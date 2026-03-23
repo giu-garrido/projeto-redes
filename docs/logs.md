@@ -21,3 +21,13 @@
 - Corrigi erro meu, que fazia com que as duas funções do client chamarem *recv()* no mesmo socket. Aí o feedup recebia a mensagem de confirmação de compra (exemplo) e o negotiator ficasse esperando. Se o servidor mandasse a atualização do feed, quem recebia era o negotiator. (muita confusão com uma só linha de código)
 -  Corrigi questão do tempo, que agora utiliza time.time pra pegar o tempo real atual pra calcular o tempo atual - de quando começou o processo (ou terminou o anterior)
 -  Adicionei o thread join() que tava faltando em um dos arquivos ( não lembro mais qual era B) )
+
+ ### [22/03/26]
+
+ [16:00] Vitor R. A. Furuta
+- Correções de lógica em market_sim onde eram usadas ordens erradas e nomes de variáveis que nunca eram alterados/chamados.
+- Implementação de max_clients para controle póstumo de acesso.
+- Mudanças na main para permitir múltiplos users.
+- Conteúdo da main que interagia com o user foi separado em outra função (client_waiter), para dinamizar e expandir interações server-user.
+- Adição de controle de usernames, agora são únicos, são perguntados ao tentar acesso e já são chamados na criação da thread dedicada.
+
