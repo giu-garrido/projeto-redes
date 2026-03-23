@@ -2,10 +2,15 @@ import socket, threading, time, random, config, sys
 from datetime import datetime
 
 mutex = threading.Lock()
+mutex_clients = threading.Lock()
 
 prices = {asset: price for asset, price in config.INITIAL_ASSETS.items()}
 balance = config.USER_BALANCE
 portfolio = {asset: 0 for asset in config.INITIAL_ASSETS}
+
+max_clients = 0
+clients_connected = 0
+
 tick = config.TICK_SIZE
 var_tick = config.MAX_TICKS_PER_VARIATION
 min_price = config.MIN_PRICE
@@ -156,31 +161,9 @@ def market_simulation(client_socket):
             beginning_feed_time = time.time()
 
         time.sleep(random.uniform(min_tick_time, max_tick_time))
-        
-###################
 
-def main():
-
-    if(len(sys.argv) != 2: #verifica se houve o argumento de max_clients
-        print("[ERROR] Uso correto: python server.py <max_clients>")
-        sys.exit(1) #encerra com codigo de erro
-    try:
-        max_clients = int(sys.argv[1]) #o argumento em sys é string por padrão
-        if(max_clients < 1):
-            raise ValueError
-    except ValueError:
-        print("[ERROR] <max_clientes> deve ser um número inteiro positivo.")
-        sys.exit(1)
-        print(f"[INFO] Servidor iniciado. Limite: {max_clients} cliente(s).")
-    
-
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind((config.HOST, config.PORT))
-    server_socket.listen(1) #recebe 1 valor na fila, talvez alterar!?
-
-    print(f"[INFO] AGUARDANDO CONEXÃO (PORTA: {config.PORT})")
-    client_socket, address = server_socket.accept() # Fica esperando a conexão do cliente p/ aceitar
-    print(f"[INFO] CLIENTE CONECTADO: {address}")
+def client_waiter(client_socket, address):
+    global clients_connected
 
     timestamp_message = datetime.now().strftime("%H:%M:%S")
     msg = f"{timestamp_message}: CONECTADO!"
@@ -193,8 +176,15 @@ def main():
 
     client_socket.send(msg.encode()) # Pra mandar tudo por só um socket
 
-    SvTh1Commands = threading.Thread(target = commands, args=(client_socket,),name="SvTh1Commands")
-    SvTh2Pricing = threading.Thread(target = market_simulation, args=(client_socket,),name="SvTh2Pricing")
+    SvTh1Commands = threading.Thread(
+        target = commands, 
+        args=(client_socket,),
+        name=f"SvTh1Commands-{address}")
+    
+    SvTh2Pricing = threading.Thread(
+        target = market_simulation, 
+        args=(client_socket,),
+        name=f"SvTh2Pricing-{address}")
 
     SvTh2Pricing.daemon = True #daemon faz com que thread encerre junto com o main
     
@@ -203,8 +193,61 @@ def main():
 
     SvTh1Commands.join() # main vai travar até a thread de comandos fechar
 
+    with mutex_clients:
+        clients_connected -= 1
+
     client_socket.close()
-    server_socket.close()
+    print(f"[INFO] Cliente {address} desconectou. Clientes: {clients_connected}/{max_clients}")
+ 
+
+        
+###################
+
+def main():
+    global max_clients
+
+    
+    if len(sys.argv) != 2: #verifica se houve o argumento de max_clients
+        print("[ERROR] Uso correto: python server.py <max_clients>")
+        sys.exit(1) #encerra com codigo de erro
+    try:
+        max_clients = int(sys.argv[1]) #o argumento em sys é string por padrão
+        if(max_clients < 1):
+            raise ValueError
+    except ValueError:
+        print("[ERROR] <max_clientes> deve ser um número inteiro positivo.")
+        sys.exit(1)
+    print(f"[INFO] Servidor iniciado. Limite: {max_clients} cliente(s).")
+    
+
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind((config.HOST, config.PORT))
+    server_socket.listen()
+
+    print(f"[INFO] AGUARDANDO CONEXÃO (PORTA: {config.PORT})")
+
+    while True:
+        
+        client_socket, address = server_socket.accept() # Fica esperando a conexão do cliente p/ aceitar
+
+        with mutex_clients:
+            if clients_connected >= max_clients:
+                client_socket.send("[ERROR] Servidor lotado. Tente mais tarde.".encode())
+                client_socket.close()
+                continue
+            clients_connected += 1
+        print(f"[INFO] CLIENTE CONECTADO: {address} | CLIENTES: {clients_connected}/{max_clients}")
+
+        client_thread = threading.Thread(
+            target = client_waiter,
+            args = (client_socket, address),
+            name = f"Client - {address}"
+
+            
+        )
+        client_thread.daemon = True
+        client_thread.start()
+
 
 main()
 
