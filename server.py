@@ -10,6 +10,7 @@ portfolio = {asset: 0 for asset in config.INITIAL_ASSETS}
 
 max_clients = 0
 clients_connected = 0
+active_usernames = set()
 
 tick = config.TICK_SIZE
 var_tick = config.MAX_TICKS_PER_VARIATION
@@ -162,28 +163,53 @@ def market_simulation(client_socket):
 
         time.sleep(random.uniform(min_tick_time, max_tick_time))
 
+
+######################
+##  Thread do waiter   ##
+######################
+
+
 def client_waiter(client_socket, address):
     global clients_connected
 
+    client_socket.send(f"Digite seu nome de usuário: ".encode()) #pede nome de user
+    username = client_socket.recv(1024).decode().strip() 
+    
+    if not username:
+        client_socket.send("[ERROR] Nome inválido. Encerrando conexão.".encode())
+        with mutex_clients:
+            clients_connected -= 1
+        client_socket.close()
+        return
+
+    with mutex_clients:
+        if username in active_usernames:
+            client_socket.send("[ERROR] Nome de usuário já está em uso. Encerrando conexão.".encode())
+            clients_connected -= 1
+            client_socket.close()
+            return
+        active_usernames.add(username)
+
+
+    print(f"[INFO] Usuário identificado: {username} | Endereço: {address}")
+
     timestamp_message = datetime.now().strftime("%H:%M:%S")
-    msg = f"{timestamp_message}: CONECTADO!"
-
+    msg = f"{timestamp_message}: CONECTADO! Bem vindo, {username}!\n"
     msg += "-------------------------------------------\nComandos: :buy <ATIVO> <QTD> | :sell <ATIVO> <QTD> | :carteira | :exit\n-------------------------------------------\n"
-
     for asset, price in prices.items():
-        msg += f"\nAtivo disponível: {asset} (R${price})\n"
-    msg += f"Seu saldo: R${balance}"
+        msg += f"\nAtivo disponível: {asset} (R${price:.2f})\n"
+    msg += f"\nSeu saldo: R${balance:.2f}"
+    client_socket.send(msg.encode())
 
-    client_socket.send(msg.encode()) # Pra mandar tudo por só um socket
 
     SvTh1Commands = threading.Thread(
         target = commands, 
-        args=(client_socket,),
+        args=(client_socket,username),
         name=f"SvTh1Commands-{address}")
     
     SvTh2Pricing = threading.Thread(
         target = market_simulation, 
-        args=(client_socket,),
+        args=(client_socket,username),
         name=f"SvTh2Pricing-{address}")
 
     SvTh2Pricing.daemon = True #daemon faz com que thread encerre junto com o main
@@ -195,6 +221,7 @@ def client_waiter(client_socket, address):
 
     with mutex_clients:
         clients_connected -= 1
+        active_usernames.discard(username)
 
     client_socket.close()
     print(f"[INFO] Cliente {address} desconectou. Clientes: {clients_connected}/{max_clients}")
