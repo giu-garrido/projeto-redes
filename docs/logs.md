@@ -31,3 +31,8 @@
 - Conteúdo da main que interagia com o user foi separado em outra função (client_waiter), para dinamizar e expandir interações server-user.
 - Adição de controle de usernames, agora são únicos, são perguntados ao tentar acesso e já são chamados na criação da thread dedicada.
 
+ ### [23/03/26]
+ [15:20] Vitor R. A. Furuta
+ - Refatoração do uso de balance e portfolio, antes eram travados a single-user, agora adaptado para multi-user com acesso em users[username]['balance'] e users[username]['portfolio']
+ - Troca das variáveis antigas pelo novo modelo
+ - Alteração no valor inicial de carteira, de 10000 para 1000
