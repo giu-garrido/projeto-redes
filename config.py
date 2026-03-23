@@ -3,7 +3,7 @@
 HOST = 'localhost'
 PORT = 5000 # Porta de endereço pro server
 
-USER_BALANCE = 10000.00 # Como pedido nas especificações ("atualizando o saldo e a carteira do usuário em memória compartilhada")
+USER_BALANCE = 1000.00 # Como pedido nas especificações ("atualizando o saldo e a carteira do usuário em memória compartilhada")
 
 INITIAL_ASSETS = { # Peguei os valores dos mais negociados (dia 27/02/26)
     "PETR4": 39.61,
