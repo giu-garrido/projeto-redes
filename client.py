@@ -67,6 +67,12 @@ def main():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #inicia o socket do client    
     server_socket.connect((config.HOST, config.PORT)) # Conecta com o server
 
+    clstart = server_socket.recv(1024).decode()
+    print(clstart, end="", flush=True) #exibe pedido vindo do server, end="" para facilitar entendimento no terminal, flush=True para otimizar terminal pro user
+
+    username = input()
+    server_socket.send(username.encode()) #coleta e envio de username
+
     msg = server_socket.recv(1024).decode()
     print(f"{msg}\n")
 
