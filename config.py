@@ -20,5 +20,6 @@ MAX_TICK_TIME = 3 # Tempo máximo para alteração de preço
 FEED_INTERVAL = 5 # Feed constante de preços que o servidor vai mandar pro cliente
 MIN_PRICE = 0.01 # Menor valor possível
 DATA_FILE = "users_data.json"
+TIMEOUT_TIME = 60 #1 minuto para timeout 
 
 

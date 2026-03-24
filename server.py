@@ -5,6 +5,7 @@ mutex = threading.Lock()
 mutex_clients = threading.Lock()
 
 prices = {asset: price for asset, price in config.INITIAL_ASSETS.items()}
+pending_orders = {}
 users = {}
 active_usernames = set()
 
@@ -68,6 +69,9 @@ def commands(client_socket, username, session_active):
 
         except (ConnectionResetError, OSError):
             print(f"[INFO] {username} desconectou.")
+            session_active.clear()  #avisa as outras threads
+            break                   #sai do loop antes do if not message
+
 
         if not message:
             print(f"[INFO] {username} encerrou a conexão.")
@@ -292,8 +296,8 @@ def client_waiter(client_socket, address):
         name=f"SvTh1Commands-{address}")
     
     SvTh2Pricing = threading.Thread(
-        target = market_simulation, 
-        args=(),
+        target = feed_sender, #envia as cotações periodicamente para o cliente via socket
+        args=(client_socket, username, session_active),
         name=f"SvTh2Pricing-{address}")
 
     SvTh2Pricing.daemon = True #daemon faz com que thread encerre junto com o main

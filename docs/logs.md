@@ -44,3 +44,10 @@
 - Faltava global clients_connected no main()
 - Salva saldo e carteira em users_data.json, carrega de volta quando o server reinicia
 - Taquei-lhe uns try/except
+
+[22:30] Victor M. Franca
+- Bugs corrigidos:
+    - Thread 2 iniciava market_simulation que já está rodando globalmente, entao alterei para feed_sender, que envia as cotações periodicamente para o cliente via socket
+    - fluxo na função commands, codigo nao finalizava o loop, entao adicionei: session_active.clear(que avisa as outras threads) e um break. 
+- Criacao da variavel TIMEOUT_TIME para definir quanto tempo de experição para ordem do usuario (necessaria para implentar ordem de compra por preco especifico)
+- Criacao do dicionario global pending_orders = {} no server.py
