@@ -1,0 +1,32 @@
+{
+  "Giulia": {
+    "balance": 729.9299999999998,
+    "portfolio": {
+      "PETR4": 5,
+      "BBDC4": 0,
+      "POMO4": 9,
+      "RAIZ4": 0,
+      "CSAN3": 0
+    }
+  },
+  "Vitors": {
+    "balance": 1000.0,
+    "portfolio": {
+      "PETR4": 0,
+      "BBDC4": 0,
+      "POMO4": 0,
+      "RAIZ4": 0,
+      "CSAN3": 0
+    }
+  },
+  "Uauuuu": {
+    "balance": 1000.0,
+    "portfolio": {
+      "PETR4": 0,
+      "BBDC4": 0,
+      "POMO4": 0,
+      "RAIZ4": 0,
+      "CSAN3": 0
+    }
+  }
+}

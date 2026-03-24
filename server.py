@@ -1,4 +1,4 @@
-import socket, threading, time, random, config, sys
+import socket, threading, time, random, config, sys, os, json
 from datetime import datetime
 
 mutex = threading.Lock()
@@ -10,28 +10,67 @@ active_usernames = set()
 
 max_clients = 0
 clients_connected = 0
-
+server_running = threading.Event()
+server_running.set()
 
 tick = config.TICK_SIZE
 var_tick = config.MAX_TICKS_PER_VARIATION
 min_price = config.MIN_PRICE
 feed_interval = config.FEED_INTERVAL
-active = config.ACTIVE
 min_tick_time = config.MIN_TICK_TIME
 max_tick_time = config.MAX_TICK_TIME
+
+#############################
+# Criação dos Arquivos JSON #
+#############################
+
+def load_users():
+    
+    global users
+
+    if os.path.exists(config.DATA_FILE):
+        
+        try:
+            
+            with open(config.DATA_FILE, "r") as f:
+                users = json.load(f)
+            print(f"[INFO] Dados carregados de {config.DATA_FILE} (temos {len(users)} usuário(s))")
+        
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"[ERROR] Falha ao carregar {config.DATA_FILE}: {e}")
+            users = {}
+    else:
+        print(f"[INFO] Arquivo {config.DATA_FILE} não encontrado. Iniciando sem dados.")
+        users = {}
+ 
+ 
+def save_users():
+   
+    try:
+        
+        with open(config.DATA_FILE, "w") as f:
+            json.dump(users, f, indent=2, ensure_ascii=False)
+    
+    except IOError as e:
+        print(f"[ERROR] Falha ao salvar {config.DATA_FILE}: {e}")
 
 #######################
 # Thread dos Comandos #
 #######################
 
-def commands(client_socket, username):
-    global active
+def commands(client_socket, username, session_active):
 
-    while active:
+    while session_active.is_set():
 
-        message = client_socket.recv(1024).decode()
+        try:
+
+            message = client_socket.recv(1024).decode()
+
+        except (ConnectionResetError, OSError):
+            print(f"[INFO] {username} desconectou.")
 
         if not message:
+            print(f"[INFO] {username} encerrou a conexão.")
             break
 
         message = message.strip()
@@ -78,7 +117,8 @@ def commands(client_socket, username):
                             users[username]['balance'] -= total_cost
                             users[username]['portfolio'][asset] += qtd
                             response = f"\n[OK] Você executou: COMPRA {qtd}x {asset} a R${current_price:.2f} | Total: R${total_cost:.2f}"
-                        
+                            save_users()
+
                         else:
                             response = f"\n[ERROR] Saldo insuficiente. Saldo atual: R${users[username]['balance']:.2f}"
                     else:
@@ -110,7 +150,8 @@ def commands(client_socket, username):
                             users[username]['balance'] += total_cost
                             users[username]['portfolio'][asset] -= qtd
                             response = f"\n[OK] Você executou: VENDA {qtd}x {asset} a R${current_price:.2f} | Total: R${total_cost:.2f}"
-                        
+                            save_users()
+
                         else:
                             response = f"\n[ERROR] Você não possui {qtd}x {asset}. Disponível: {users[username]['portfolio'].get(asset, 0)} unidades."
                     else:
@@ -124,55 +165,77 @@ def commands(client_socket, username):
         else:
             client_socket.send("\n[ERROR] Comando não reconhecido. Use :buy, :sell, :carteira, :exit".encode())
 
+    session_active.clear()
 
+##########################################
+##  Thread do feed (agora por cliente)  ##
+##########################################
 
-######################
-##  Thread do feed  ##
-######################
+def feed_sender(client_socket, username, session_active):
+ 
+    while session_active.is_set():
 
-def market_simulation(client_socket, username):  
-    global active, prices
-
-    beginning_feed_time = time.time()
-
-    while active:
+        time.sleep(feed_interval)
+ 
+        if not session_active.is_set():
+            break
+ 
         with mutex:
+            feed_msg = "\n[FEED] Cotações atualizadas:\n"
             for asset, price in prices.items():
-                    
+                feed_msg += f"\t{asset}: R${price:.2f}\n"
+ 
+        try:
+            client_socket.send(feed_msg.encode())
+
+        except (BrokenPipeError, ConnectionResetError, OSError):
+            print(f"[INFO] Feed: {username} desconectou.")
+            session_active.clear()
+            break
+
+
+################################
+# Simulador de Mercado (único) #
+################################
+
+
+def market_simulation():
+ 
+    while server_running.is_set():
+
+        with mutex:
+
+            for asset in prices:
+
                 variation = random.uniform(-tick * var_tick, tick * var_tick)
                 prices[asset] = round(prices[asset] + variation, 2)
-
+ 
                 if prices[asset] < min_price:
                     prices[asset] = min_price
-
-        if (time.time() - beginning_feed_time) >= feed_interval:
-            with mutex:
-                feed_msg = "\n[FEED] Cotações atualizadas:\n"
-                for asset, price in prices.items():
-                    feed_msg += f"\t{asset}: R${price:.2f}\n"
-
-            try:
-                client_socket.send(feed_msg.encode())
-            except (BrokenPipeError, ConnectionResetError, OSError):
-                print("[INFO] Cliente desconectou. Encerrando o feed.")
-                break
-
-            beginning_feed_time = time.time()
-
+ 
         time.sleep(random.uniform(min_tick_time, max_tick_time))
 
 
-######################
+#########################
 ##  Thread do waiter   ##
-######################
+#########################
 
 
 def client_waiter(client_socket, address):
+
     global clients_connected
 
     client_socket.send(f"Digite seu nome de usuário: ".encode()) #pede nome de user
-    username = client_socket.recv(1024).decode().strip() 
     
+    try:
+        username = client_socket.recv(1024).decode().strip() 
+    except (ConnectionResetError, OSError):
+        with mutex_clients:
+            clients_connected -= 1
+        client_socket.close()
+        return
+
+
     if not username: #confirma se há nome
         client_socket.send("[ERROR] Nome inválido. Encerrando conexão.".encode())
         with mutex_clients:
@@ -194,27 +257,43 @@ def client_waiter(client_socket, address):
                 "balance": config.USER_BALANCE,
                 "portfolio": {asset: 0 for asset in config.INITIAL_ASSETS}       
             }
+            save_users()
+            is_new = True
+
+        else:
+        
+            for asset in config.INITIAL_ASSETS:
+                if asset not in users[username]['portfolio']:
+                    users[username]['portfolio'][asset] = 0
+            is_new = False
 
 
     print(f"[INFO] Usuário identificado: {username} | Endereço: {address}")
 
     timestamp_message = datetime.now().strftime("%H:%M:%S")
+
     msg = f"{timestamp_message}: CONECTADO! Bem vindo, {username}!\n"
     msg += "-------------------------------------------\nComandos: :buy <ATIVO> <QTD> | :sell <ATIVO> <QTD> | :carteira | :exit\n-------------------------------------------\n"
-    for asset, price in prices.items():
-        msg += f"\nAtivo disponível: {asset} (R${price:.2f})\n"
-    msg += f"\nSeu saldo: R$ {users[username]['balance']:.2f}"
+    
+    with mutex:
+
+        for asset, price in prices.items():
+            msg += f"\nAtivo disponível: {asset} (R${price:.2f})\n"
+        msg += f"\nSeu saldo: R$ {users[username]['balance']:.2f}"
+    
     client_socket.send(msg.encode())
 
+    session_active = threading.Event()
+    session_active.set()
 
     SvTh1Commands = threading.Thread(
         target = commands, 
-        args=(client_socket,username),
+        args=(client_socket,username, session_active),
         name=f"SvTh1Commands-{address}")
     
     SvTh2Pricing = threading.Thread(
         target = market_simulation, 
-        args=(client_socket,username),
+        args=(),
         name=f"SvTh2Pricing-{address}")
 
     SvTh2Pricing.daemon = True #daemon faz com que thread encerre junto com o main
@@ -223,6 +302,8 @@ def client_waiter(client_socket, address):
     SvTh2Pricing.start()
 
     SvTh1Commands.join() # main vai travar até a thread de comandos fechar
+
+    session_active.clear()
 
     with mutex_clients:
         clients_connected -= 1
@@ -236,50 +317,74 @@ def client_waiter(client_socket, address):
 ###################
 
 def main():
-    global max_clients
+    global max_clients, clients_connected
 
     
     if len(sys.argv) != 2: #verifica se houve o argumento de max_clients
         print("[ERROR] Uso correto: python server.py <max_clients>")
         sys.exit(1) #encerra com codigo de erro
+    
     try:
         max_clients = int(sys.argv[1]) #o argumento em sys é string por padrão
         if(max_clients < 1):
             raise ValueError
+    
     except ValueError:
         print("[ERROR] <max_clientes> deve ser um número inteiro positivo.")
         sys.exit(1)
+
+    load_users()
+    
     print(f"[INFO] Servidor iniciado. Limite: {max_clients} cliente(s).")
     
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) #evita endereço já em uso
     server_socket.bind((config.HOST, config.PORT))
     server_socket.listen()
 
     print(f"[INFO] AGUARDANDO CONEXÃO (PORTA: {config.PORT})")
 
-    while True:
+    th_market = threading.Thread(target=market_simulation, name="MarketSimulation", daemon=True) #cria só uma thread pro market
+    
+    th_market.start()
+
+
+    try:
         
-        client_socket, address = server_socket.accept() # Fica esperando a conexão do cliente p/ aceitar
-
-        with mutex_clients:
-            if clients_connected >= max_clients:
-                client_socket.send("[ERROR] Servidor lotado. Tente mais tarde.".encode())
-                client_socket.close()
-                continue
-            clients_connected += 1
-        print(f"[INFO] CLIENTE CONECTADO: {address} | CLIENTES: {clients_connected}/{max_clients}")
-
-        client_thread = threading.Thread(
-            target = client_waiter,
-            args = (client_socket, address),
-            name = f"Client - {address}"
-
+        while True:
             
-        )
-        client_thread.daemon = True
-        client_thread.start()
+            client_socket, address = server_socket.accept() # Fica esperando a conexão do cliente p/ aceitar
 
+            with mutex_clients:
+
+                if clients_connected >= max_clients:
+
+                    client_socket.send("[ERROR] Servidor lotado. Tente mais tarde.".encode())
+                    client_socket.close()
+                    continue
+
+                clients_connected += 1
+            
+            print(f"[INFO] CLIENTE CONECTADO: {address} | CLIENTES: {clients_connected}/{max_clients}")
+
+            client_thread = threading.Thread(
+                target = client_waiter,
+                args = (client_socket, address),
+                name = f"Client - {address}"
+            )
+
+            client_thread.daemon = True
+            client_thread.start()
+
+    except KeyboardInterrupt:
+        print(f"\n[INFO] Crtl+C encerrou o servidor.")
+
+    with mutex:
+            save_users()
+    print("[INFO] Dados salvos. Servidor encerrado.")
+
+    server_socket.close()
 
 main()
 

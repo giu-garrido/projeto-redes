@@ -1,12 +1,12 @@
 import socket, threading, config
 
-active = config.ACTIVE
+session_active = threading.Event()
+session_active.set()
 
 #Thread 1 - le comandos do usuario e envia ao servidor
 def negotiator(server_socket):
-    global active
 
-    while active:
+    while session_active.is_set():
         try:
             #Commit Victor
             cmd = input()  # aguarda o usuário digitar algo
@@ -17,7 +17,7 @@ def negotiator(server_socket):
 
             if cmd.strip().lower() == ':exit':
                 print("[OK] Encerrando conexão...")
-                active = False
+                session_active.clear()
                 break # Para de ler o teclado 
 
                                         #ouvidor do server
@@ -28,21 +28,20 @@ def negotiator(server_socket):
                socket.herror            # erro de de endereço do host
               ):
             print(f'\n[ERROR] Erro ao se conectar. Conexão Encerrada.')
-            active = False
+            session_active.clear()
             break
 
 #thread 2 - recebe os precos do server e printa
 def feedupd(server_socket):
-    global active
 
-    while active:
+    while session_active.is_set():
         try:
             
             msg = server_socket.recv(1024).decode()  # recebe do servidor
 
             if not msg:
                 print('\n[INFO] Servidor encerrou a conexão.')
-                active = False
+                session_active.clear()
                 break
 
             if "[ERROR]" in msg:
@@ -57,15 +56,22 @@ def feedupd(server_socket):
                 socket.gaierror,         # erro ao resolver DNS/endereço
                 socket.herror            # erro de de endereço do host
                 ):
-            print(f'\n[ERROR] Erro ao se conectar. Conexão Encerrada.')
-            active = False
+            if session_active.is_set():
+
+                print(f'\n[ERROR] Erro ao se conectar. Conexão Encerrada.')
+            
+            session_active.clear()
             break
 
 
 def main():
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #inicia o socket do client    
-    server_socket.connect((config.HOST, config.PORT)) # Conecta com o server
+    
+    try:
+        server_socket.connect((config.HOST, config.PORT)) # Conecta com o server
+    except (ConnectionRefusedError, OSError) as e:
+        print(f"[ERROR] {e}")
 
     clstart = server_socket.recv(1024).decode()
     print(clstart, end="", flush=True) #exibe pedido vindo do server, end="" para facilitar entendimento no terminal, flush=True para otimizar terminal pro user
@@ -84,7 +90,10 @@ def main():
 
     ClTh1Negotiation.join()  # main() trava aqui até Thread 1 terminar
     
+    session_active.clear()
     server_socket.close()
+
+    print(f"\nDesconectado.")
 
 main()
 

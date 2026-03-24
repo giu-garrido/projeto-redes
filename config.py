@@ -19,6 +19,6 @@ MIN_TICK_TIME = 1 # Tempo mínimo para alteração de preço
 MAX_TICK_TIME = 3 # Tempo máximo para alteração de preço
 FEED_INTERVAL = 5 # Feed constante de preços que o servidor vai mandar pro cliente
 MIN_PRICE = 0.01 # Menor valor possível
-ACTIVE = True # Flag
+DATA_FILE = "users_data.json"
 
 

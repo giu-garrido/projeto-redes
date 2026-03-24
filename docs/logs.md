@@ -36,3 +36,11 @@
  - Refatoração do uso de balance e portfolio, antes eram travados a single-user, agora adaptado para multi-user com acesso em users[username]['balance'] e users[username]['portfolio']
  - Troca das variáveis antigas pelo novo modelo
  - Alteração no valor inicial de carteira, de 10000 para 1000
+
+[20:00] Giulia M. Garrido
+- Separei a função market_simulator entre uma só função para simular o mercado e outra para enviar as infos para os clientes
+- Flag active global removida, agora cada sessão tem threading.Event()
+- SO_REUSEADDR no server pra parar de dar "Address already in use"
+- Faltava global clients_connected no main()
+- Salva saldo e carteira em users_data.json, carrega de volta quando o server reinicia
+- Taquei-lhe uns try/except
