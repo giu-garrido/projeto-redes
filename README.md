@@ -36,12 +36,13 @@ projeto-redes/
 
 ## Comandos
 
-| Comando               | Descrição                         |
-|-----------------------|-----------------------------------|
-| `:buy <ATIVO> <QTD>`  | Compra X unidades de um ativo     |
-| `:sell <ATIVO> <QTD>` | Vende X unidades de um ativo      |
-| `:carteira`           | Exibe saldo e ativos na carteira  |
-| `:exit`               | Encerra a conexão                 |
+| Comando                           | Descrição                         |
+|-----------------------------------|-----------------------------------|
+| `:buy <ATIVO> <QTD>`              | Compra X unidades de um ativo     |
+| `:sell <ATIVO> <QTD>`             | Vende X unidades de um ativo      |
+| `:carteira`                       | Exibe saldo e ativos na carteira  |
+| `:exit`                           | Encerra a conexão                 |
+| `:buywhen <ATICO> <QTD> <VALOR>`  | Programa ordem de compra          |
 
 ---
 

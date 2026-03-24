@@ -49,5 +49,17 @@
 - Bugs corrigidos:
     - Thread 2 iniciava market_simulation que já está rodando globalmente, entao alterei para feed_sender, que envia as cotações periodicamente para o cliente via socket
     - fluxo na função commands, codigo nao finalizava o loop, entao adicionei: session_active.clear(que avisa as outras threads) e um break. 
-- Criacao da variavel TIMEOUT_TIME para definir quanto tempo de experição para ordem do usuario (necessaria para implentar ordem de compra por preco especifico)
+- Criacao da variavel TIMEOUT_TIME para definir quanto tempo de expedição para ordem do usuario (necessaria para implentar ordem de compra por preco especifico)
 - Criacao do dicionario global pending_orders = {} no server.py
+
+ ### [24/03/26]
+[9:30] Victor M. Franca
+- Implentando comando :buywhen; 
+    - valida se o ativo existe, se não há outra ordem pendente para aquele ativo, e se o usuário tem saldo suficiente
+    - reserva o saldo, desconta o valor do saldo imediatamente para garantir que o dinheiro existe na hora da compra
+    - registra a ordem no dicionário "pending_orders" com todas as informações necessárias: quantidade, preço-alvo, horário de expiração e o socket do cliente
+    - exemplo de como usar: ":buywhen PETR4 2 38.50"
+- Implentando verificação dentro do market_simulation,
+    - Preço atingiu o alvo → executa a compra, adiciona os ativos na carteira, devolve a diferença caso o preço tenha caído abaixo do alvo, e notifica o cliente
+    - Ordem expirou → devolve o saldo reservado e notifica o cliente
+

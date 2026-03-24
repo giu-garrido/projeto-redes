@@ -98,6 +98,47 @@ def commands(client_socket, username, session_active):
                 text += "\n---------------------------\n"
             client_socket.send(text.encode())
 
+########################## implemntando buywhen ####################
+        elif message.lower().startswith(":buywhen"):  # ← antes do :buy
+            parts = message.split()
+            if len(parts) == 4:
+                asset = parts[1].upper()
+                try:
+                    qty = int(parts[2])
+                    target_price = float(parts[3])
+                except ValueError:
+                    client_socket.send("[ERROR] Uso: :buywhen <ATIVO> <QTD> <PRECO>".encode())
+                    continue
+ 
+                with mutex:
+                    if asset not in prices:
+                        response = f"[ERROR] Ativo '{asset}' não encontrado."
+                    elif username in pending_orders and asset in pending_orders[username]:
+                        response = f"[ERROR] Já existe uma ordem pendente para {asset}."
+                    else:
+                        reserved = target_price * qty
+                        if users[username]['balance'] < reserved:
+                            response = f"[ERROR] Saldo insuficiente para reservar R${reserved:.2f}."
+                        else:
+                            users[username]['balance'] -= reserved
+                            expires_at = time.time() + config.TIMEOUT_TIME
+                            if username not in pending_orders:
+                                pending_orders[username] = {}
+                            pending_orders[username][asset] = {
+                                "qty": qty,
+                                "target_price": target_price,
+                                "expires_at": expires_at,
+                                "socket": client_socket,
+                                "reserved": reserved
+                            }
+                            save_users()
+                            response = (f"[OK] Ordem registrada: comprar {qty}x {asset} "
+                                        f"quando atingir R${target_price:.2f} "
+                                        f"(expira em {config.TIMEOUT_TIME}s)")
+                client_socket.send(response.encode())
+            else:
+                client_socket.send("[ERROR] Uso: :buywhen <ATIVO> <QTD> <PRECO>".encode())
+####################################################################
 
         elif message.lower().startswith(":buy"):
             parts = message.split()
@@ -164,16 +205,16 @@ def commands(client_socket, username, session_active):
                 client_socket.send(response.encode())
             else:
                 client_socket.send("\n[ERROR] Comando correto: :sell <ATIVO> <QTD>".encode())
-                
+            
 
         else:
-            client_socket.send("\n[ERROR] Comando não reconhecido. Use :buy, :sell, :carteira, :exit".encode())
+            client_socket.send("\n[ERROR] Comando não reconhecido. Use :buy, :sell, :buywhen, :carteira, :exit".encode())
 
     session_active.clear()
 
-##########################################
-##  Thread do feed (agora por cliente)  ##
-##########################################
+######################
+##  Thread do feed  ##
+######################
 
 def feed_sender(client_socket, username, session_active):
  
@@ -216,6 +257,48 @@ def market_simulation():
  
                 if prices[asset] < min_price:
                     prices[asset] = min_price
+
+###################### Checa ordens pendentes################
+            now = time.time()
+            to_remove = []
+            for uname, orders in pending_orders.items():
+                for asset, order in list(orders.items()):
+
+                    if now >= order['expires_at']:
+                        # Expirou — devolve saldo
+                        users[uname]['balance'] += order['reserved']
+                        save_users()
+                        msg = (f"\n[INFO] Ordem expirada: {order['qty']}x {asset} "
+                               f"a R${order['target_price']:.2f}. "
+                               f"Saldo de R${order['reserved']:.2f} devolvido.")
+                        try:
+                            order['socket'].send(msg.encode())
+                        except OSError:
+                            pass
+                        to_remove.append((uname, asset))
+
+                    elif prices[asset] <= order['target_price']:
+                        # Preço atingido — executa a compra
+                        actual_cost = prices[asset] * order['qty']
+                        users[uname]['portfolio'][asset] += order['qty']
+                        diff = order['reserved'] - actual_cost
+                        if diff > 0:  # Preço caiu abaixo do alvo — devolve diferença
+                            users[uname]['balance'] += diff
+                        save_users()
+                        msg = (f"\n[OK] Ordem executada: COMPRA {order['qty']}x {asset} "
+                               f"a R${prices[asset]:.2f} | Total: R${actual_cost:.2f}")
+                        if diff > 0:
+                            msg += f" | Diferença devolvida: R${diff:.2f}"
+                        try:
+                            order['socket'].send(msg.encode())
+                        except OSError:
+                            pass
+                        to_remove.append((uname, asset))
+
+            for uname, asset in to_remove:
+                del pending_orders[uname][asset]
+
+#############################################################
  
         time.sleep(random.uniform(min_tick_time, max_tick_time))
 
@@ -277,7 +360,7 @@ def client_waiter(client_socket, address):
     timestamp_message = datetime.now().strftime("%H:%M:%S")
 
     msg = f"{timestamp_message}: CONECTADO! Bem vindo, {username}!\n"
-    msg += "-------------------------------------------\nComandos: :buy <ATIVO> <QTD> | :sell <ATIVO> <QTD> | :carteira | :exit\n-------------------------------------------\n"
+    msg += "-------------------------------------------\nComandos: :buy <ATIVO> <QTD> | :sell <ATIVO> <QTD> | :buywhen <ATIVO> <QTD> <PRECO> | :carteira | :exit\n-------------------------------------------\n"
     
     with mutex:
 
