@@ -52,7 +52,7 @@ projeto-redes/
 1. Abra um terminal e inicie o servidor:
 
 ```bash
-python server.py
+python server.py <max_clients>
 ```
 
 2. Em outro terminal, inicie o cliente:
