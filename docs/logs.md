@@ -63,3 +63,16 @@
     - Preço atingiu o alvo → executa a compra, adiciona os ativos na carteira, devolve a diferença caso o preço tenha caído abaixo do alvo, e notifica o cliente
     - Ordem expirou → devolve o saldo reservado e notifica o cliente
 
+ ### [28/03/26]
+[16:00] Victor M. Franca
+
+- att no .client:
+    - Adiconando sys no import,necessario para o sys.exit() 
+    - Adicionando .close e sys.exit no primeiro do try except do main, para encerrar de forma limpa (linha 74)
+    - Login agora e protegido por um try except 
+
+- att no .server:
+    - Visando impedir que erros afetem o salvando e fechamento do socket
+        - adicionando um "except OSError", cobre as falahas do accept e do socket (linha 476)
+        - adicionando um "finally" para garantir que os dados sejam salvos e o socket fechado (linha 479)
+    - KeyError que poderia dar no :carteira protegido, so adicionei um if pra evitar o KeyError caso o Ativo n exista. (linha 95)

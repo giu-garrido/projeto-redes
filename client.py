@@ -1,4 +1,4 @@
-import socket, threading, config
+import socket, threading, config, sys 
 
 session_active = threading.Event()
 session_active.set()
@@ -8,7 +8,7 @@ def negotiator(server_socket):
 
     while session_active.is_set():
         try:
-            #Commit Victor
+
             cmd = input()  # aguarda o usuário digitar algo
             if not cmd:
                 continue
@@ -71,16 +71,25 @@ def main():
     try:
         server_socket.connect((config.HOST, config.PORT)) # Conecta com o server
     except (ConnectionRefusedError, OSError) as e:
-        print(f"[ERROR] {e}")
+        print(f"[ERROR] Não foi possivel conectar ao servidor: {e}")
+        server_socket.close() #libera o socket mesmo sem ter conectado
+        sys.exit(1)  #encerra o programa de forma mais limpa
 
-    clstart = server_socket.recv(1024).decode()
-    print(clstart, end="", flush=True) #exibe pedido vindo do server, end="" para facilitar entendimento no terminal, flush=True para otimizar terminal pro user
+    try:
+        clstart = server_socket.recv(1024).decode()
+        print(clstart, end="", flush=True) #exibe pedido vindo do server, end="" para facilitar entendimento no terminal, flush=True para otimizar terminal pro user
 
-    username = input()
-    server_socket.send(username.encode()) #coleta e envio de username
+        username = input()
+        server_socket.send(username.encode()) #coleta e envio de username
 
-    msg = server_socket.recv(1024).decode()
-    print(f"{msg}\n")
+        msg = server_socket.recv(1024).decode()
+        print(f"{msg}\n")
+
+    except (ConnectionResetError, OSError) as e: #Server caiu o login fail
+        
+        print(f"\n[ERROR] Conexão perdida durante o login: {e}")
+        server_socket.close()
+        sys.exit(1)
 
     ClTh1Negotiation = threading.Thread(target = negotiator, args=(server_socket,),name="ClTh1Negotiation")
     ClTh2Feed = threading.Thread(target = feedupd , args=(server_socket,),name="ClTh2Feed") 

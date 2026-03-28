@@ -91,9 +91,14 @@ def commands(client_socket, username, session_active):
 
                 for asset, qtd in users[username]['portfolio'].items():
                     if qtd > 0:
-                        total_value = qtd * prices[asset]
+                        # Verifica se o ativo ainda existe nos preços atuais antes de acessar
+                        if asset in prices:
+                            total_value = qtd * prices[asset]
+                            text += f"[{asset}]: {qtd} unidades (Total: R${total_value:.2f})\n"
 
-                        text += f"[{asset}]: {qtd} unidades (Total: R${total_value:.2f})\n"
+                        else:
+                            # Ativo foi removido do config mas ainda está no portfólio do usuário
+                            text += f"[{asset}]: {qtd} unidades (preço indisponível)\n"
 
                 text += "\n---------------------------\n"
             client_socket.send(text.encode())
@@ -461,17 +466,23 @@ def main():
                 name = f"Client - {address}"
             )
 
+            
             client_thread.daemon = True
             client_thread.start()
 
     except KeyboardInterrupt:
         print(f"\n[INFO] Crtl+C encerrou o servidor.")
 
-    with mutex:
-            save_users()
-    print("[INFO] Dados salvos. Servidor encerrado.")
+    except OSError as e:        #Cobre falhas inesperadas no accept() e no socket do servidor
+        print(f"\n[ERROR] Erro no servidor: {e}")
 
-    server_socket.close()
+    finally:    #ele sempre sera executado mesmo com erros
+                # garante que os dados sejam salvos e o socket fechado
+        with mutex:
+                save_users()
+        print("[INFO] Dados salvos. Servidor encerrado.")
+
+        server_socket.close()
 
 main()
 
