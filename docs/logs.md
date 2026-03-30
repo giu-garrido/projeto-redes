@@ -80,8 +80,9 @@
  ### [30/03/26]
 [18:00] Vitor R. A. Furuta
 - users_data.json -> data.json
-- Adição de persistência nos valores dos preços, o último valor atualizado agora é salvo em data.json
-- Preços alterados serão salvos junto aos eventos, caso não haja eventos -> salva a cada 30s
+- Adição de persistência nos valores dos preços, o último valor atualizado agora é salvo em data.json.
+- Preços alterados serão salvos junto aos eventos, caso não haja eventos -> salva a cada 30s.
+- Adição de daemon na thread de comandos. Corrige necessidade de 2 CTRL+C para encerrar programa.
 
 
 
