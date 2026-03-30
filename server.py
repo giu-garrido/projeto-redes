@@ -26,31 +26,40 @@ max_tick_time = config.MAX_TICK_TIME
 #############################
 
 def load_users():
-    
-    global users
+    global users, prices
 
     if os.path.exists(config.DATA_FILE):
-        
         try:
-            
             with open(config.DATA_FILE, "r") as f:
-                users = json.load(f)
-            print(f"[INFO] Dados carregados de {config.DATA_FILE} (temos {len(users)} usuário(s))")
-        
+                data = json.load(f)
+
+            # Carrega preços salvos, se existirem
+            if "prices" in data:
+                prices.update(data["prices"])
+                print(f"[INFO] Preços carregados do disco.")
+            else:
+                print(f"[INFO] Nenhum preço salvo encontrado. Usando valores iniciais do config.")
+
+            # Carrega usuários — ignora a chave "prices"
+            users = {k: v for k, v in data.items() if k != "prices"}
+            print(f"[INFO] Dados carregados de {config.DATA_FILE} ({len(users)} usuário(s))")
+
         except (json.JSONDecodeError, IOError) as e:
             print(f"[ERROR] Falha ao carregar {config.DATA_FILE}: {e}")
             users = {}
     else:
-        print(f"[INFO] Arquivo {config.DATA_FILE} não encontrado. Iniciando sem dados.")
+        print(f"[INFO] Arquivo {config.DATA_FILE} não encontrado. Usando valores iniciais.")
         users = {}
  
  
 def save_users():
    
     try:
+        data = {"prices": prices}  # adiciona preços 
+        data.update(users)  
         
         with open(config.DATA_FILE, "w") as f:
-            json.dump(users, f, indent=2, ensure_ascii=False)
+            json.dump(data, f, indent=2, ensure_ascii=False)
     
     except IOError as e:
         print(f"[ERROR] Falha ao salvar {config.DATA_FILE}: {e}")
@@ -250,7 +259,9 @@ def feed_sender(client_socket, username, session_active):
 
 
 def market_simulation():
- 
+    
+    last_save = time.time()
+     
     while server_running.is_set():
 
         with mutex:
@@ -266,13 +277,14 @@ def market_simulation():
 ###################### Checa ordens pendentes################
             now = time.time()
             to_remove = []
+            needs_save = False
             for uname, orders in pending_orders.items():
                 for asset, order in list(orders.items()):
 
                     if now >= order['expires_at']:
                         # Expirou — devolve saldo
                         users[uname]['balance'] += order['reserved']
-                        save_users()
+                        needs_save = True
                         msg = (f"\n[INFO] Ordem expirada: {order['qty']}x {asset} "
                                f"a R${order['target_price']:.2f}. "
                                f"Saldo de R${order['reserved']:.2f} devolvido.")
@@ -289,7 +301,7 @@ def market_simulation():
                         diff = order['reserved'] - actual_cost
                         if diff > 0:  # Preço caiu abaixo do alvo — devolve diferença
                             users[uname]['balance'] += diff
-                        save_users()
+                        needs_save = True
                         msg = (f"\n[OK] Ordem executada: COMPRA {order['qty']}x {asset} "
                                f"a R${prices[asset]:.2f} | Total: R${actual_cost:.2f}")
                         if diff > 0:
@@ -304,7 +316,14 @@ def market_simulation():
                 del pending_orders[uname][asset]
 
 #############################################################
- 
+        if needs_save:
+            save_users()
+        
+        if time.time() - last_save >= 30:
+            save_users()
+            last_save = time.time()
+
+        
         time.sleep(random.uniform(min_tick_time, max_tick_time))
 
 
