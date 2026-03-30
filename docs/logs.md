@@ -76,3 +76,13 @@
         - adicionando um "except OSError", cobre as falahas do accept e do socket (linha 476)
         - adicionando um "finally" para garantir que os dados sejam salvos e o socket fechado (linha 479)
     - KeyError que poderia dar no :carteira protegido, so adicionei um if pra evitar o KeyError caso o Ativo n exista. (linha 95)
+ 
+ ### [30/03/26]
+[18:00] Vitor R. A. Furuta
+- users_data.json -> data.json
+- Adição de persistência nos valores dos preços, o último valor atualizado agora é salvo em data.json
+- Preços alterados serão salvos junto aos eventos, caso não haja eventos -> salva a cada 30s
+
+
+
+
