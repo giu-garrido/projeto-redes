@@ -406,7 +406,8 @@ def client_waiter(client_socket, address):
         target = feed_sender, #envia as cotações periodicamente para o cliente via socket
         args=(client_socket, username, session_active),
         name=f"SvTh2Pricing-{address}")
-
+    
+    SvTh1Commands.daemon = True
     SvTh2Pricing.daemon = True #daemon faz com que thread encerre junto com o main
     
     SvTh1Commands.start()
