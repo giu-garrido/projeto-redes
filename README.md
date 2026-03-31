@@ -42,7 +42,7 @@ projeto-redes/
 | `:sell <ATIVO> <QTD>`             | Vende X unidades de um ativo      |
 | `:carteira`                       | Exibe saldo e ativos na carteira  |
 | `:exit`                           | Encerra a conexão                 |
-| `:buywhen <ATICO> <QTD> <VALOR>`  | Programa ordem de compra          |
+| `:buywhen <ATIVO> <QTD> <VALOR>`  | Programa ordem de compra          |
 
 ---
 

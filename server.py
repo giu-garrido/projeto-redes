@@ -287,7 +287,9 @@ def market_simulation():
                 if prices[asset] < min_price:
                     prices[asset] = min_price
 
-###################### Checa ordens pendentes################
+    ########################
+    #Checa ordens pendentes#
+    ########################
             
             to_remove = []
             needs_save = False
@@ -316,7 +318,8 @@ def market_simulation():
             for uname, asset in to_remove:
                 del pending_orders[uname][asset]
 
-#############################################################
+    #############################################################
+
         if needs_save:
             save_users()
         
@@ -506,8 +509,9 @@ def main():
     except OSError as e:        #Cobre falhas inesperadas no accept() e no socket do servidor
         print(f"\n[ERROR] Erro no servidor: {e}")
 
-    finally:    #ele sempre sera executado mesmo com erros
-                # garante que os dados sejam salvos e o socket fechado
+#ele sempre sera executado mesmo com erros, garante que os dados sejam salvos e o socket fechado
+    finally:   
+
         with mutex:
             # Devolve saldo de todas as ordens pendentes de todos os usuários
             for uname, orders in pending_orders.items():
