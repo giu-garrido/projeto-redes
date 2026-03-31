@@ -126,6 +126,10 @@ def commands(client_socket, username, session_active):
                 except ValueError:
                     client_socket.send("[ERROR] Uso: :buywhen <ATIVO> <QTD> <PRECO>".encode())
                     continue
+
+                if qtd <= 0 or target_price <= 0:
+                    client_socket.send("[ERROR] Quantidade deve ser maior que zero.".encode())
+                    continue
  
                 with mutex:
                     if asset not in prices:
@@ -203,6 +207,10 @@ def commands(client_socket, username, session_active):
                     qtd = int(parts[2])
                 except ValueError:
                     client_socket.send("[ERROR] Quantidade deve ser um número inteiro.".encode())
+                    continue
+
+                if qtd <= 0:
+                    client_socket.send("[ERROR] Quantidade deve ser maior que zero.".encode())
                     continue
 
                 with mutex:
