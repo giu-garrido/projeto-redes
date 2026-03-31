@@ -112,7 +112,10 @@ def commands(client_socket, username, session_active):
                 text += "\n---------------------------\n"
             client_socket.send(text.encode())
 
-########################## implemntando buywhen ####################
+    ########################
+    # implemntando buywhen #
+    ########################
+
         elif message.lower().startswith(":buywhen"):  # ← antes do :buy
             parts = message.split()
             if len(parts) == 4:
@@ -150,7 +153,7 @@ def commands(client_socket, username, session_active):
                 client_socket.send(response.encode())
             else:
                 client_socket.send("[ERROR] Uso: :buywhen <ATIVO> <QTD> <PRECO>".encode())
-####################################################################
+    ####################################################################
 
         elif message.lower().startswith(":buy"):
             parts = message.split()
@@ -494,7 +497,14 @@ def main():
     finally:    #ele sempre sera executado mesmo com erros
                 # garante que os dados sejam salvos e o socket fechado
         with mutex:
-                save_users()
+            # Devolve saldo de todas as ordens pendentes de todos os usuários
+            for uname, orders in pending_orders.items():
+                for asset, order in orders.items():
+                    users[uname]['balance'] += order['reserved']
+                    print(f"[INFO] Ordem cancelada no encerramento: {order['qty']}x {asset} — saldo de R${order['reserved']:.2f} devolvido a {uname}.")
+            pending_orders.clear()  # limpa todas as ordens
+
+            save_users()
         print("[INFO] Dados salvos. Servidor encerrado.")
 
         server_socket.close()

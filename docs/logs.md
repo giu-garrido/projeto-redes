@@ -86,7 +86,7 @@
 
 [21:00] Victor M. Franca
 - Removendo o Timeout para ordem de compra, estava apresentado bugs e como não é um requisito optamos por remover
-
+- corrigindo bug do buywhen
 
 
 

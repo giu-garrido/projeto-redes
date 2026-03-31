@@ -12,7 +12,7 @@ INITIAL_ASSETS = { # Peguei os valores dos mais negociados (dia 27/02/26)
     "RAIZ4": 0.650,
     "CSAN3": 6.64, 
     "FRST3": 1990.99,
-    "GUGOU": 500.67
+    "GUG0U": 500.67
 }
 
 TICK_SIZE = 0.01 # Do mercado à vista da B3
