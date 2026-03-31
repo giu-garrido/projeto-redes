@@ -1,12 +1,23 @@
 {
+  "prices": {
+    "PETR4": 39.77,
+    "BBDC4": 21.52,
+    "POMO4": 5.81,
+    "RAIZ4": 0.97,
+    "CSAN3": 7.25,
+    "FRST3": 1990.2,
+    "GUGOU": 500.13
+  },
   "Giulia": {
-    "balance": 729.9299999999998,
+    "balance": 97299976545.40999,
     "portfolio": {
-      "PETR4": 5,
+      "PETR4": 4,
       "BBDC4": 0,
       "POMO4": 9,
       "RAIZ4": 0,
-      "CSAN3": 0
+      "CSAN3": 0,
+      "FRST3": 11,
+      "GUGOU": 0
     }
   },
   "Vitors": {
@@ -27,6 +38,18 @@
       "POMO4": 0,
       "RAIZ4": 0,
       "CSAN3": 0
+    }
+  },
+  "teste": {
+    "balance": 950.0,
+    "portfolio": {
+      "PETR4": 0,
+      "BBDC4": 0,
+      "POMO4": 0,
+      "RAIZ4": 0,
+      "CSAN3": 0,
+      "FRST3": 0,
+      "GUGOU": 0
     }
   }
 }

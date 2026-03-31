@@ -403,6 +403,15 @@ def client_waiter(client_socket, address):
 
     session_active.clear()
 
+    with mutex:
+        if username in pending_orders and pending_orders[username]:
+            for asset, order in pending_orders[username].items():
+                # Devolve o saldo que estava reservado para cada ordem
+                users[username]['balance'] += order['reserved']
+                print(f"[INFO] Ordem cancelada na desconexão: {order['qty']}x {asset} — saldo de R${order['reserved']:.2f} devolvido a {username}.")
+            del pending_orders[username]  # remove todas as ordens do usuário
+            save_users()
+
     with mutex_clients:
         clients_connected -= 1
         active_usernames.discard(username)
