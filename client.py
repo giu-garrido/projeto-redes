@@ -94,11 +94,16 @@ def main():
     ClTh1Negotiation = threading.Thread(target = negotiator, args=(server_socket,),name="ClTh1Negotiation")
     ClTh2Feed = threading.Thread(target = feedupd , args=(server_socket,),name="ClTh2Feed") 
 
-    ClTh1Negotiation.start()
+    ClTh1Negotiation.daemon = True
     ClTh2Feed.start()
+    ClTh1Negotiation.start()
 
-    ClTh1Negotiation.join()  # main() trava aqui até Thread 1 terminar
-    
+    try:
+        while session_active.is_set():
+            ClTh1Negotiation.join(timeout=0.5)  # checa a cada 0.5s se deve sair
+    except KeyboardInterrupt:
+        print("\n[INFO] Ctrl+C.")
+        
     session_active.clear()
     server_socket.close()
 

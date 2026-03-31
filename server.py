@@ -112,7 +112,10 @@ def commands(client_socket, username, session_active):
                 text += "\n---------------------------\n"
             client_socket.send(text.encode())
 
-########################## implemntando buywhen ####################
+    ########################
+    # implemntando buywhen #
+    ########################
+
         elif message.lower().startswith(":buywhen"):  # ← antes do :buy
             parts = message.split()
             if len(parts) == 4:
@@ -122,6 +125,10 @@ def commands(client_socket, username, session_active):
                     target_price = float(parts[3])
                 except ValueError:
                     client_socket.send("[ERROR] Uso: :buywhen <ATIVO> <QTD> <PRECO>".encode())
+                    continue
+
+                if qtd <= 0 or target_price <= 0:
+                    client_socket.send("[ERROR] Quantidade deve ser maior que zero.".encode())
                     continue
  
                 with mutex:
@@ -134,25 +141,23 @@ def commands(client_socket, username, session_active):
                         if users[username]['balance'] < reserved:
                             response = f"[ERROR] Saldo insuficiente para reservar R${reserved:.2f}."
                         else:
-                            users[username]['balance'] -= reserved
-                            expires_at = time.time() + config.TIMEOUT_TIME
+                            users[username]['balance'] -= reserved    
                             if username not in pending_orders:
                                 pending_orders[username] = {}
                             pending_orders[username][asset] = {
                                 "qty": qty,
                                 "target_price": target_price,
-                                "expires_at": expires_at,
                                 "socket": client_socket,
                                 "reserved": reserved
                             }
                             save_users()
                             response = (f"[OK] Ordem registrada: comprar {qty}x {asset} "
-                                        f"quando atingir R${target_price:.2f} "
-                                        f"(expira em {config.TIMEOUT_TIME}s)")
+                                        f"quando atingir R${target_price:.2f} ")
+
                 client_socket.send(response.encode())
             else:
                 client_socket.send("[ERROR] Uso: :buywhen <ATIVO> <QTD> <PRECO>".encode())
-####################################################################
+    ####################################################################
 
         elif message.lower().startswith(":buy"):
             parts = message.split()
@@ -162,9 +167,13 @@ def commands(client_socket, username, session_active):
 
                 try:
                     qtd = int(parts[2])
-
+                    
                 except ValueError:
                     client_socket.send("[ERROR] Quantidade deve ser um número inteiro.".encode())
+                    continue
+
+                if qtd <= 0:
+                    client_socket.send("[ERROR] Quantidade deve ser maior que zero.".encode())
                     continue
 
                 with mutex:
@@ -198,6 +207,10 @@ def commands(client_socket, username, session_active):
                     qtd = int(parts[2])
                 except ValueError:
                     client_socket.send("[ERROR] Quantidade deve ser um número inteiro.".encode())
+                    continue
+
+                if qtd <= 0:
+                    client_socket.send("[ERROR] Quantidade deve ser maior que zero.".encode())
                     continue
 
                 with mutex:
@@ -274,27 +287,17 @@ def market_simulation():
                 if prices[asset] < min_price:
                     prices[asset] = min_price
 
-###################### Checa ordens pendentes################
-            now = time.time()
+    ########################
+    #Checa ordens pendentes#
+    ########################
+            
             to_remove = []
             needs_save = False
             for uname, orders in pending_orders.items():
                 for asset, order in list(orders.items()):
 
-                    if now >= order['expires_at']:
-                        # Expirou — devolve saldo
-                        users[uname]['balance'] += order['reserved']
-                        needs_save = True
-                        msg = (f"\n[INFO] Ordem expirada: {order['qty']}x {asset} "
-                               f"a R${order['target_price']:.2f}. "
-                               f"Saldo de R${order['reserved']:.2f} devolvido.")
-                        try:
-                            order['socket'].send(msg.encode())
-                        except OSError:
-                            pass
-                        to_remove.append((uname, asset))
 
-                    elif prices[asset] <= order['target_price']:
+                    if prices[asset] <= order['target_price']:
                         # Preço atingido — executa a compra
                         actual_cost = prices[asset] * order['qty']
                         users[uname]['portfolio'][asset] += order['qty']
@@ -315,7 +318,8 @@ def market_simulation():
             for uname, asset in to_remove:
                 del pending_orders[uname][asset]
 
-#############################################################
+    #############################################################
+
         if needs_save:
             save_users()
         
@@ -417,6 +421,15 @@ def client_waiter(client_socket, address):
 
     session_active.clear()
 
+    with mutex:
+        if username in pending_orders and pending_orders[username]:
+            for asset, order in pending_orders[username].items():
+                # Devolve o saldo que estava reservado para cada ordem
+                users[username]['balance'] += order['reserved']
+                print(f"[INFO] Ordem cancelada na desconexão: {order['qty']}x {asset} — saldo de R${order['reserved']:.2f} devolvido a {username}.")
+            del pending_orders[username]  # remove todas as ordens do usuário
+            save_users()
+
     with mutex_clients:
         clients_connected -= 1
         active_usernames.discard(username)
@@ -496,10 +509,18 @@ def main():
     except OSError as e:        #Cobre falhas inesperadas no accept() e no socket do servidor
         print(f"\n[ERROR] Erro no servidor: {e}")
 
-    finally:    #ele sempre sera executado mesmo com erros
-                # garante que os dados sejam salvos e o socket fechado
+#ele sempre sera executado mesmo com erros, garante que os dados sejam salvos e o socket fechado
+    finally:   
+
         with mutex:
-                save_users()
+            # Devolve saldo de todas as ordens pendentes de todos os usuários
+            for uname, orders in pending_orders.items():
+                for asset, order in orders.items():
+                    users[uname]['balance'] += order['reserved']
+                    print(f"[INFO] Ordem cancelada no encerramento: {order['qty']}x {asset} — saldo de R${order['reserved']:.2f} devolvido a {uname}.")
+            pending_orders.clear()  # limpa todas as ordens
+
+            save_users()
         print("[INFO] Dados salvos. Servidor encerrado.")
 
         server_socket.close()
