@@ -134,21 +134,19 @@ def commands(client_socket, username, session_active):
                         if users[username]['balance'] < reserved:
                             response = f"[ERROR] Saldo insuficiente para reservar R${reserved:.2f}."
                         else:
-                            users[username]['balance'] -= reserved
-                            expires_at = time.time() + config.TIMEOUT_TIME
+                            users[username]['balance'] -= reserved    
                             if username not in pending_orders:
                                 pending_orders[username] = {}
                             pending_orders[username][asset] = {
                                 "qty": qty,
                                 "target_price": target_price,
-                                "expires_at": expires_at,
                                 "socket": client_socket,
                                 "reserved": reserved
                             }
                             save_users()
                             response = (f"[OK] Ordem registrada: comprar {qty}x {asset} "
-                                        f"quando atingir R${target_price:.2f} "
-                                        f"(expira em {config.TIMEOUT_TIME}s)")
+                                        f"quando atingir R${target_price:.2f} ")
+
                 client_socket.send(response.encode())
             else:
                 client_socket.send("[ERROR] Uso: :buywhen <ATIVO> <QTD> <PRECO>".encode())
@@ -275,26 +273,14 @@ def market_simulation():
                     prices[asset] = min_price
 
 ###################### Checa ordens pendentes################
-            now = time.time()
+            
             to_remove = []
             needs_save = False
             for uname, orders in pending_orders.items():
                 for asset, order in list(orders.items()):
 
-                    if now >= order['expires_at']:
-                        # Expirou — devolve saldo
-                        users[uname]['balance'] += order['reserved']
-                        needs_save = True
-                        msg = (f"\n[INFO] Ordem expirada: {order['qty']}x {asset} "
-                               f"a R${order['target_price']:.2f}. "
-                               f"Saldo de R${order['reserved']:.2f} devolvido.")
-                        try:
-                            order['socket'].send(msg.encode())
-                        except OSError:
-                            pass
-                        to_remove.append((uname, asset))
 
-                    elif prices[asset] <= order['target_price']:
+                    if prices[asset] <= order['target_price']:
                         # Preço atingido — executa a compra
                         actual_cost = prices[asset] * order['qty']
                         users[uname]['portfolio'][asset] += order['qty']

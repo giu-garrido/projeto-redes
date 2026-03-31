@@ -84,6 +84,9 @@
 - Preços alterados serão salvos junto aos eventos, caso não haja eventos -> salva a cada 30s.
 - Adição de daemon na thread de comandos. Corrige necessidade de 2 CTRL+C para encerrar programa.
 
+[21:00] Victor M. Franca
+- Removendo o Timeout para ordem de compra, estava apresentado bugs e como não é um requisito optamos por remover
+
 
 
 
