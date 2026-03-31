@@ -163,9 +163,13 @@ def commands(client_socket, username, session_active):
 
                 try:
                     qtd = int(parts[2])
-
+                    
                 except ValueError:
                     client_socket.send("[ERROR] Quantidade deve ser um número inteiro.".encode())
+                    continue
+
+                if qtd <= 0:
+                    client_socket.send("[ERROR] Quantidade deve ser maior que zero.".encode())
                     continue
 
                 with mutex:
